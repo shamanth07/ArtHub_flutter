@@ -17,7 +17,7 @@ class _SigninPageState extends State<SigninPage> {
   bool _obscurePassword = true;
   bool _isAgreed = false; // Checkbox value
   String _selectedRole = 'Visitor';
-  final List<String> _roles = ['Visitor', 'Artist', 'Organizer'];
+  final List<String> _roles = ['Visitor', 'Artist', 'Admin'];
 
   void _togglePasswordVisibility() {
     setState(() => _obscurePassword = !_obscurePassword);

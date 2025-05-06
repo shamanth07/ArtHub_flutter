@@ -16,7 +16,7 @@ class _SignupPageState extends State<SignupPage> {
 
   bool _obscurePassword = true;
   String _selectedRole = 'Visitor';
-  final List<String> _roles = ['Visitor', 'Artist', 'Organizer'];
+  final List<String> _roles = ['Visitor', 'Artist', 'Admin'];
 
   void _togglePasswordVisibility() {
     setState(() => _obscurePassword = !_obscurePassword);
