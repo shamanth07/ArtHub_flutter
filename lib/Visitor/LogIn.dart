@@ -50,23 +50,22 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 10),
 
-                  /// 👇 Updated Role Dropdown (Right-aligned)
+                  /// 👇 Role Dropdown (Right-aligned)
                   Align(
-                    alignment: Alignment.centerRight, // Align the dropdown to the right
+                    alignment: Alignment.centerRight,
                     child: Container(
                       height: 40,
-                      width: 200, // Adjust the width for a smaller dropdown
+                      width: 200,
                       child: DropdownButtonFormField<String>(
                         value: _selectedRole,
                         decoration: InputDecoration(
-
                           labelStyle: TextStyle(fontWeight: FontWeight.w500),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                           filled: true,
                           fillColor: Colors.grey.shade100,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Adjusted padding to reduce height
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
                         items: _roles
                             .map((role) => DropdownMenuItem(
@@ -89,7 +88,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  /// 👇 Email Field as a Heading
+                  /// 👇 Email Field
                   Align(
                     alignment: Alignment.centerLeft,
                     child: const Text(
@@ -102,13 +101,16 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-
-                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _emailController,
                     decoration: const InputDecoration(
                       hintText: "example@email.com",
-                      border: OutlineInputBorder(),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
                     ),
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
@@ -119,7 +121,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  /// 👇 Password Field as a Heading
+                  /// 👇 Password Field
                   Align(
                     alignment: Alignment.centerLeft,
                     child: const Text(
@@ -132,26 +134,26 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-
-                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       hintText: "password",
-                      border: const OutlineInputBorder(),
+                      enabledBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
                         ),
                         onPressed: _togglePasswordVisibility,
                       ),
                     ),
-                    validator: (value) => value!.length < 6
-                        ? "Password must be at least 6 characters"
-                        : null,
+                    validator: (value) =>
+                    value!.length < 6 ? "Password must be at least 6 characters" : null,
                   ),
                   const SizedBox(height: 30),
 
