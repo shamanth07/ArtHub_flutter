@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:art_hub/Visitor/SignUp.dart'; // Make sure this file has a SignUp widget
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -50,7 +51,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 10),
 
-                  /// 👇 Role Dropdown (Right-aligned)
+                  /// 👇 Role Dropdown
                   Align(
                     alignment: Alignment.centerRight,
                     child: Container(
@@ -65,7 +66,8 @@ class _SignupPageState extends State<SignupPage> {
                           ),
                           filled: true,
                           fillColor: Colors.grey.shade100,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
                         items: _roles
                             .map((role) => DropdownMenuItem(
@@ -147,7 +149,9 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                         ),
                         onPressed: _togglePasswordVisibility,
                       ),
@@ -193,7 +197,10 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                       TextButton(
                         onPressed: () {
-                          // Navigate to sign-up page (if this is login)
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => SigninPage()),
+                          );
                         },
                         child: const Text(
                           "Sign Up",
