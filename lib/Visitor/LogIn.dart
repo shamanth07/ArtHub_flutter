@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:art_hub/Visitor/SignUp.dart'; // Make sure this file has a SignUp widget
-
+import 'package:art_hub/Visitor/ForgetPassword.dart';
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
 
@@ -188,7 +188,10 @@ class _SignupPageState extends State<SignupPage> {
                     children: [
                       TextButton(
                         onPressed: () {
-                          // Navigate to forgot password screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ForgetPasswordPage()),
+                          );
                         },
                         child: const Text(
                           "Forgot Password?",
