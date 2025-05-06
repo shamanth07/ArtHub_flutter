@@ -54,11 +54,12 @@ class _SignupPageState extends State<SignupPage> {
                   Align(
                     alignment: Alignment.centerRight, // Align the dropdown to the right
                     child: Container(
+                      height: 40,
                       width: 200, // Adjust the width for a smaller dropdown
                       child: DropdownButtonFormField<String>(
                         value: _selectedRole,
                         decoration: InputDecoration(
-                          labelText: 'Register As',
+
                           labelStyle: TextStyle(fontWeight: FontWeight.w500),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
