@@ -140,7 +140,7 @@ class _SigninPageState extends State<SigninPage> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
-                      hintText: "*******",
+                      hintText: "******",
                       enabledBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Colors.grey),
                       ),
@@ -176,19 +176,19 @@ class _SigninPageState extends State<SigninPage> {
                       ),
                       const Text(
                         "I agree to the ",
-                        style: TextStyle(color: Colors.black, fontSize: 12),
+                        style: TextStyle(color: Colors.black, fontSize: 13),
                       ),
                       const Text(
                         "Terms of Service",
-                        style: TextStyle(color: Colors.red, fontSize: 12),
+                        style: TextStyle(color: Colors.red, fontSize: 13),
                       ),
                       const Text(
                         " & ",
-                        style: TextStyle(color: Colors.black, fontSize: 12),
+                        style: TextStyle(color: Colors.black, fontSize: 13),
                       ),
                       const Text(
                         "Privacy Policy",
-                        style: TextStyle(color: Colors.red, fontSize: 12),
+                        style: TextStyle(color: Colors.red, fontSize: 13),
                       ),
                     ],
                   ),

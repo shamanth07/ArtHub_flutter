@@ -140,7 +140,7 @@ class _SignupPageState extends State<SignupPage> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
-                      hintText: "*******",
+                      hintText: "******",
                       enabledBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Colors.grey),
                       ),

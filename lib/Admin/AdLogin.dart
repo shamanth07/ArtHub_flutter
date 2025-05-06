@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:art_hub/Visitor/SignUp.dart'; // Make sure this file has a SignUp widget
 
+import 'package:art_hub/Admin/AdForgetPassword.dart';
 class AdSignupPage extends StatefulWidget {
   const AdSignupPage({super.key});
 
@@ -183,32 +183,23 @@ class _AdSignupPageState extends State<AdSignupPage> {
                   const SizedBox(height: 20),
 
                   /// 👇 Forgot Password & Sign Up Links
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          // Navigate to forgot password screen
-                        },
-                        child: const Text(
-                          "Forgot Password?",
-                          style: TextStyle(color: Colors.grey),
-                        ),
+                  /// 👇 Forgot Password Link Only
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const AdForgetPasswordPage()),
+                        );
+                      },
+                      child: const Text(
+                        "Forgot Password?",
+                        style: TextStyle(color: Colors.grey),
                       ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => SigninPage()),
-                          );
-                        },
-                        child: const Text(
-                          "Sign Up",
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
+
                 ],
               ),
             ),
