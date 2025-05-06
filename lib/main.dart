@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'splash_screen.dart';
+import 'package:art_hub/Visitor/SignUp.dart';
 void main() {
   runApp(const MyApp());
 }
