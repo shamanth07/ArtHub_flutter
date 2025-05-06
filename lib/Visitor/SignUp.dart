@@ -226,12 +226,23 @@ class _SigninPageState extends State<SigninPage> {
                         );
                         // Navigate to Sign In page
                       },
-                      child: const Text(
-                        "Already have an account? Sign In",
-                        style: TextStyle(color: Colors.red),
+                      child: RichText(
+                        text: TextSpan(
+                          style: const TextStyle(color: Colors.grey), // Make the whole text grey
+                          children: [
+                            const TextSpan(
+                              text: "Already have an account? ",
+                              style: TextStyle(color: Colors.grey), // Grey color for "Already have an account?"
+                            ),
+                            const TextSpan(
+                              text: "Sign In",
+                              style: TextStyle(color: Colors.red), // Red color for "Sign In"
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
+                  )
                 ],
               ),
             ),
