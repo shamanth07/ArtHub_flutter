@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:art_hub/Visitor/LogIn.dart';
+
 class SigninPage extends StatefulWidget {
   const SigninPage({super.key});
 
@@ -14,6 +15,7 @@ class _SigninPageState extends State<SigninPage> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
+  bool _isAgreed = false; // Checkbox value
   String _selectedRole = 'Visitor';
   final List<String> _roles = ['Visitor', 'Artist', 'Organizer'];
 
@@ -155,15 +157,50 @@ class _SigninPageState extends State<SigninPage> {
                     validator: (value) =>
                     value!.length < 6 ? "Password must be at least 6 characters" : null,
                   ),
+                  const SizedBox(height: 20),
+
+                  /// 👇 Checkbox: I agree to the terms and privacy policy (Horizontal)
+                  Row(
+                    children: [
+                      Checkbox(
+
+                        value: _isAgreed,
+
+                        onChanged: (bool? newValue) {
+                          setState(() {
+                            _isAgreed = newValue!;
+
+                          });
+                        },
+                        activeColor: Colors.red,
+                      ),
+                      const Text(
+                        "I agree to the ",
+                        style: TextStyle(color: Colors.black, fontSize: 12),
+                      ),
+                      const Text(
+                        "Terms of Service",
+                        style: TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                      const Text(
+                        " & ",
+                        style: TextStyle(color: Colors.black, fontSize: 12),
+                      ),
+                      const Text(
+                        "Privacy Policy",
+                        style: TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 30),
 
                   /// 👇 Sign Up Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _submitForm,
+                      onPressed: _isAgreed ? _submitForm : null, // Only enabled if agreed
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
+                        backgroundColor: Colors.black, // Explicitly setting the black color
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
@@ -195,7 +232,6 @@ class _SigninPageState extends State<SigninPage> {
                       ),
                     ),
                   ),
-
                 ],
               ),
             ),
