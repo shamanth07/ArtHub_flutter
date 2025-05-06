@@ -3,6 +3,7 @@ import 'splash_screen.dart';
 import 'package:art_hub/Visitor/SignUp.dart';
 import 'Admin/AdLogin.dart';
 import 'Visitor/ForgetPassword.dart';
+import 'Artist/ArSignUp.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -20,7 +21,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home:AdSignupPage(),
+      home:ArSigninPage(),
     );
   }
 }
