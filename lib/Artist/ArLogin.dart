@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:art_hub/Artist/ArSignUp.dart'; // Make sure this file has a SignUp widget
 import 'package:art_hub/Artist/ArForgetPassword.dart';
+import 'package:art_hub/Admin/AdLogin.dart';
+import 'package:art_hub/Visitor/SignUp.dart';
+import 'package:art_hub/Artist/ArLogin.dart';
+import 'package:art_hub/Artist/ArSignUp.dart';
 class ArSignupPage extends StatefulWidget {
   const ArSignupPage({super.key});
 
@@ -10,26 +13,44 @@ class ArSignupPage extends StatefulWidget {
 
 class _ArSignupPageState extends State<ArSignupPage> {
   final _formKey = GlobalKey<FormState>();
-
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
-  String _selectedRole = 'Visitor';
+  String _selectedRole = 'Artist';
   final List<String> _roles = ['Visitor', 'Artist', 'Admin'];
 
   void _togglePasswordVisibility() {
     setState(() => _obscurePassword = !_obscurePassword);
   }
 
+  void _navigateToRolePage(String role) {
+    Widget targetPage;
+    switch (role) {
+      case 'Visitor':
+        targetPage = SigninPage();
+        break;
+      case 'Admin':
+        targetPage = AdSignupPage();
+        break;
+      case 'Artist':
+        targetPage = ArSigninPage();
+      default:
+        return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => targetPage),
+    );
+  }
+
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
-      final role = _selectedRole;
-
-      print("Email: $email | Password: $password | Role: $role");
-      // Add Firebase or backend logic here
+      print("Email: $email | Password: $password | Role: $_selectedRole");
+      // Firebase logic goes here
     }
   }
 
@@ -45,13 +66,10 @@ class _ArSignupPageState extends State<ArSignupPage> {
               key: _formKey,
               child: Column(
                 children: [
-                  Image.asset(
-                    'assets/images/arthub_logo.png',
-                    height: 200,
-                  ),
+                  Image.asset('assets/images/arthub_logo.png', height: 200),
                   const SizedBox(height: 10),
 
-                  /// 👇 Role Dropdown
+                  /// Role Dropdown
                   Align(
                     alignment: Alignment.centerRight,
                     child: Container(
@@ -60,7 +78,6 @@ class _ArSignupPageState extends State<ArSignupPage> {
                       child: DropdownButtonFormField<String>(
                         value: _selectedRole,
                         decoration: InputDecoration(
-                          labelStyle: TextStyle(fontWeight: FontWeight.w500),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -69,19 +86,16 @@ class _ArSignupPageState extends State<ArSignupPage> {
                           contentPadding:
                           const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
-                        items: _roles
-                            .map((role) => DropdownMenuItem(
-                          value: role,
-                          child: Text(
-                            role,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ))
-                            .toList(),
+                        items: _roles.map((role) {
+                          return DropdownMenuItem(
+                            value: role,
+                            child: Text(role, style: const TextStyle(fontSize: 16)),
+                          );
+                        }).toList(),
                         onChanged: (value) {
-                          setState(() {
-                            _selectedRole = value!;
-                          });
+                          if (value != null && value != _selectedRole) {
+                            _navigateToRolePage(value);
+                          }
                         },
                         style: const TextStyle(color: Colors.black87),
                         dropdownColor: Colors.white,
@@ -90,16 +104,12 @@ class _ArSignupPageState extends State<ArSignupPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  /// 👇 Email Field
+                  /// Email Field
                   Align(
                     alignment: Alignment.centerLeft,
                     child: const Text(
                       'Email',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -123,16 +133,12 @@ class _ArSignupPageState extends State<ArSignupPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  /// 👇 Password Field
+                  /// Password Field
                   Align(
                     alignment: Alignment.centerLeft,
                     child: const Text(
                       'Password',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -140,7 +146,7 @@ class _ArSignupPageState extends State<ArSignupPage> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
-                      hintText: "******",
+                      hintText: "*******",
                       enabledBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Colors.grey),
                       ),
@@ -149,19 +155,21 @@ class _ArSignupPageState extends State<ArSignupPage> {
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
                         ),
                         onPressed: _togglePasswordVisibility,
                       ),
                     ),
-                    validator: (value) =>
-                    value!.length < 6 ? "Password must be at least 6 characters" : null,
+                    validator: (value) {
+                      if (value == null || value.length < 6) {
+                        return "Password must be at least 6 characters";
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 30),
 
-                  /// 👇 Sign In Button
+                  /// Sign Up Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -175,14 +183,14 @@ class _ArSignupPageState extends State<ArSignupPage> {
                         elevation: 3,
                       ),
                       child: const Text(
-                        "Sign in",
+                        "Sign Up",
                         style: TextStyle(fontSize: 16, color: Colors.white),
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
 
-                  /// 👇 Forgot Password & Sign Up Links
+                  /// Forgot Password Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -200,10 +208,7 @@ class _ArSignupPageState extends State<ArSignupPage> {
                       ),
                       TextButton(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => ArSigninPage()),
-                          );
+                          _navigateToRolePage(_selectedRole); // 👈 based on dropdown
                         },
                         child: const Text(
                           "Sign Up",

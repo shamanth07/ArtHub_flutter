@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:art_hub/Artist/ArLogin.dart';
+import 'package:art_hub/Artist/ArSignUp.dart';     // Artist Sign Up Page
+import 'package:art_hub/Visitor/SignUp.dart';     // Visitor Sign In Page
+import 'package:art_hub/Admin/AdLogin.dart';      // Admin Sign In Page
+import 'package:art_hub/Visitor/LogIn.dart';      // Visitor Login Page
+import 'package:art_hub/Artist/ArLogin.dart';     // Artist Login Page
+
 class ArSigninPage extends StatefulWidget {
   const ArSigninPage({super.key});
 
@@ -9,27 +14,55 @@ class ArSigninPage extends StatefulWidget {
 
 class _ArSigninPageState extends State<ArSigninPage> {
   final _formKey = GlobalKey<FormState>();
-
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
-  bool _isAgreed = false; // Checkbox value
-  String _selectedRole = 'Visitor';
+  bool _isAgreed = false;
+  String _selectedRole = 'Artist';
   final List<String> _roles = ['Visitor', 'Artist', 'Admin'];
 
   void _togglePasswordVisibility() {
     setState(() => _obscurePassword = !_obscurePassword);
   }
 
+  void _navigateToRolePage(String role) {
+    Widget targetPage;
+
+    switch (role) {
+      case 'Visitor':
+        targetPage = SigninPage();
+        break;
+      case 'Artist':
+        targetPage = ArSigninPage();
+        break;
+      case 'Admin':
+        targetPage = AdSignupPage();
+        break;
+      default:
+        return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => targetPage),
+    );
+  }
+
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
-      final role = _selectedRole;
 
-      print("Email: $email | Password: $password | Role: $role");
-      // Add Firebase or backend signup logic here
+      if (!_isAgreed) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You must agree to the terms to continue')),
+        );
+        return;
+      }
+
+      // Proceed with sign-in logic here
+      print("Email: $email | Password: $password | Role: $_selectedRole");
     }
   }
 
@@ -45,13 +78,9 @@ class _ArSigninPageState extends State<ArSigninPage> {
               key: _formKey,
               child: Column(
                 children: [
-                  Image.asset(
-                    'assets/images/arthub_logo.png',
-                    height: 200,
-                  ),
+                  Image.asset('assets/images/arthub_logo.png', height: 200),
                   const SizedBox(height: 10),
 
-                  /// 👇 Role Dropdown (Right-aligned)
                   Align(
                     alignment: Alignment.centerRight,
                     child: Container(
@@ -66,21 +95,19 @@ class _ArSigninPageState extends State<ArSigninPage> {
                           ),
                           filled: true,
                           fillColor: Colors.grey.shade100,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
-                        items: _roles
-                            .map((role) => DropdownMenuItem(
-                          value: role,
-                          child: Text(
-                            role,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ))
-                            .toList(),
+                        items: _roles.map((role) {
+                          return DropdownMenuItem(
+                            value: role,
+                            child: Text(role, style: const TextStyle(fontSize: 16)),
+                          );
+                        }).toList(),
                         onChanged: (value) {
-                          setState(() {
-                            _selectedRole = value!;
-                          });
+                          if (value != null && value != _selectedRole) {
+                            _navigateToRolePage(value);
+                          }
                         },
                         style: const TextStyle(color: Colors.black87),
                         dropdownColor: Colors.white,
@@ -89,16 +116,11 @@ class _ArSigninPageState extends State<ArSigninPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  /// 👇 Email Field
                   Align(
                     alignment: Alignment.centerLeft,
                     child: const Text(
                       'Email',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -122,16 +144,11 @@ class _ArSigninPageState extends State<ArSigninPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  /// 👇 Password Field
                   Align(
                     alignment: Alignment.centerLeft,
                     child: const Text(
                       'Password',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -153,68 +170,51 @@ class _ArSigninPageState extends State<ArSigninPage> {
                         onPressed: _togglePasswordVisibility,
                       ),
                     ),
-                    validator: (value) =>
-                    value!.length < 6 ? "Password must be at least 6 characters" : null,
+                    validator: (value) {
+                      if (value == null || value.length < 6) {
+                        return "Password must be at least 6 characters";
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 20),
 
-                  /// 👇 Checkbox: I agree to the terms and privacy policy (Horizontal)
                   Row(
                     children: [
                       Checkbox(
-
                         value: _isAgreed,
-
                         onChanged: (bool? newValue) {
-                          setState(() {
-                            _isAgreed = newValue!;
-
-                          });
+                          setState(() => _isAgreed = newValue ?? false);
                         },
                         activeColor: Colors.red,
                       ),
-                      const Text(
-                        "I agree to the ",
-                        style: TextStyle(color: Colors.black, fontSize: 13),
-                      ),
-                      const Text(
-                        "Terms of Service",
-                        style: TextStyle(color: Colors.red, fontSize: 13),
-                      ),
-                      const Text(
-                        " & ",
-                        style: TextStyle(color: Colors.black, fontSize: 13),
-                      ),
-                      const Text(
-                        "Privacy Policy",
-                        style: TextStyle(color: Colors.red, fontSize: 13),
-                      ),
+                      const Text("I agree to the ", style: TextStyle(fontSize: 13)),
+                      const Text("Terms of Service",
+                          style: TextStyle(color: Colors.red, fontSize: 13)),
+                      const Text(" & ", style: TextStyle(fontSize: 13)),
+                      const Text("Privacy Policy",
+                          style: TextStyle(color: Colors.red, fontSize: 13)),
                     ],
                   ),
                   const SizedBox(height: 30),
 
-                  /// 👇 Sign Up Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isAgreed ? _submitForm : null, // Only enabled if agreed
+                      onPressed: _isAgreed ? _submitForm : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black, // Explicitly setting the black color
+                        backgroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        elevation: 3,
                       ),
-                      child: const Text(
-                        "Sign Up",
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
+                      child: const Text("Sign In",
+                          style: TextStyle(fontSize: 16, color: Colors.white)),
                     ),
                   ),
                   const SizedBox(height: 20),
 
-                  /// 👇 Already have an account? Sign In
                   Align(
                     alignment: Alignment.center,
                     child: TextButton(
@@ -223,20 +223,14 @@ class _ArSigninPageState extends State<ArSigninPage> {
                           context,
                           MaterialPageRoute(builder: (context) => ArSignupPage()),
                         );
-                        // Navigate to Sign In page
                       },
                       child: RichText(
-                        text: TextSpan(
-                          style: const TextStyle(color: Colors.grey), // Make the whole text grey
+                        text: const TextSpan(
+                          style: TextStyle(color: Colors.grey),
                           children: [
-                            const TextSpan(
-                              text: "Already have an account? ",
-                              style: TextStyle(color: Colors.grey), // Grey color for "Already have an account?"
-                            ),
-                            const TextSpan(
-                              text: "Sign In",
-                              style: TextStyle(color: Colors.red), // Red color for "Sign In"
-                            ),
+                            TextSpan(text: "Don't have an account? "),
+                            TextSpan(
+                                text: "Sign Up", style: TextStyle(color: Colors.red)),
                           ],
                         ),
                       ),

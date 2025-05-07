@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:art_hub/Visitor/SignUp.dart'; // Make sure this file has a SignUp widget
+import 'package:art_hub/Visitor/SignUp.dart'; // must contain class SignUp
 import 'package:art_hub/Visitor/ForgetPassword.dart';
+import 'package:art_hub/Admin/AdLogin.dart'; // must contain class AdSignupPage
+import 'package:art_hub/Artist/ArSignUp.dart'; // must contain class ArSignUpPage
+
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
 
@@ -33,6 +36,29 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
+  void _navigateToRolePage(String role) {
+    Widget targetPage;
+
+    switch (role) {
+      case 'Visitor':
+        targetPage = SigninPage();
+        break;
+      case 'Artist':
+        targetPage = ArSigninPage();
+        break;
+      case 'Admin':
+        targetPage = AdSignupPage();
+        break;
+      default:
+        return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => targetPage),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,7 +77,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 10),
 
-                  /// 👇 Role Dropdown
+                  /// 👇 Role Dropdown with Navigation
                   Align(
                     alignment: Alignment.centerRight,
                     child: Container(
@@ -69,19 +95,17 @@ class _SignupPageState extends State<SignupPage> {
                           contentPadding:
                           const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
-                        items: _roles
-                            .map((role) => DropdownMenuItem(
-                          value: role,
-                          child: Text(
-                            role,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ))
-                            .toList(),
+                        items: _roles.map((role) {
+                          return DropdownMenuItem(
+                            value: role,
+                            child: Text(role, style: const TextStyle(fontSize: 16)),
+                          );
+                        }).toList(),
                         onChanged: (value) {
-                          setState(() {
-                            _selectedRole = value!;
-                          });
+                          if (value != null) {
+                            setState(() => _selectedRole = value);
+                            _navigateToRolePage(value);
+                          }
                         },
                         style: const TextStyle(color: Colors.black87),
                         dropdownColor: Colors.white,
@@ -149,9 +173,7 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
                         ),
                         onPressed: _togglePasswordVisibility,
                       ),
@@ -200,10 +222,7 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                       TextButton(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => SigninPage()),
-                          );
+                          _navigateToRolePage(_selectedRole); // 👈 based on dropdown
                         },
                         child: const Text(
                           "Sign Up",

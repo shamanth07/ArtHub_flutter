@@ -4,6 +4,7 @@ import 'package:art_hub/Visitor/SignUp.dart';
 import 'Admin/AdLogin.dart';
 import 'Visitor/ForgetPassword.dart';
 import 'Artist/ArSignUp.dart';
+import 'Visitor/LogIn.dart';
 void main() {
   runApp(const MyApp());
 }
