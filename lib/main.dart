@@ -5,7 +5,10 @@ import 'Admin/AdLogin.dart';
 import 'Visitor/ForgetPassword.dart';
 import 'Artist/ArSignUp.dart';
 import 'Visitor/LogIn.dart';
-void main() {
+import 'package:firebase_core/firebase_core.dart';
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -22,7 +25,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home:ArSigninPage(),
+      home:SplashScreen(),
     );
   }
 }

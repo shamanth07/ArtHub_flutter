@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:art_hub/Admin/AdForgetPassword.dart';
 import 'package:art_hub/Artist/ArSignUp.dart';
-import 'package:art_hub/Artist/ArLogin.dart';
 import 'package:art_hub/Visitor/SignUp.dart';
+import 'package:art_hub/Admin/Adhome.dart';
 
-class AdSignupPage extends StatefulWidget {
-  const AdSignupPage({super.key});
+class AdSignUpPage extends StatefulWidget {
+  const AdSignUpPage({super.key});
 
   @override
-  State<AdSignupPage> createState() => _AdSignupPageState();
+  State<AdSignUpPage> createState() => _AdSignUpPageState();
 }
 
-class _AdSignupPageState extends State<AdSignupPage> {
+class _AdSignUpPageState extends State<AdSignUpPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -28,13 +30,13 @@ class _AdSignupPageState extends State<AdSignupPage> {
     Widget targetPage;
     switch (role) {
       case 'Visitor':
-        targetPage = SigninPage(); // Visitor signin page
+        targetPage = SigninPage();
         break;
       case 'Artist':
-        targetPage = ArSigninPage(); // Artist signin page
+        targetPage = ArSigninPage();
         break;
       case 'Admin':
-        return; // Stay on the same page
+        return; // Already on Admin page
       default:
         return;
     }
@@ -45,12 +47,55 @@ class _AdSignupPageState extends State<AdSignupPage> {
     );
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
-      print("Email: $email | Password: $password | Role: $_selectedRole");
-      // Add Firebase or backend logic here
+
+      try {
+        UserCredential userCredential = await FirebaseAuth.instance
+            .signInWithEmailAndPassword(email: email, password: password);
+
+        String uid = userCredential.user!.uid;
+        print("DEBUG: Logged in user UID: $uid");  // Debug print
+
+        // Check if the user's role is admin in the Realtime Database
+        final adminRef = FirebaseDatabase.instance.ref('admin/$uid');
+        final snapshot = await adminRef.once();
+
+        if (snapshot.snapshot.exists) {
+          final role = snapshot.snapshot.child('role').value?.toString().toLowerCase();
+          print("DEBUG: User role fetched: $role");  // Debug print
+
+          if (role == 'admin') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Welcome, Admin!")),
+            );
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => AdHomePage()),
+            );
+          } else {
+            await FirebaseAuth.instance.signOut();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Access denied: not an Admin.")),
+            );
+          }
+        } else {
+          print("DEBUG: Admin record not found.");
+          await FirebaseAuth.instance.signOut();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Admin record not found.")),
+          );
+        }
+      } on FirebaseAuthException catch (e) {
+        String error = "Login failed.";
+        if (e.code == 'user-not-found') error = "User not found.";
+        if (e.code == 'wrong-password') error = "Incorrect password.";
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error)));
+      }
     }
   }
 
@@ -72,7 +117,7 @@ class _AdSignupPageState extends State<AdSignupPage> {
                   /// Role Dropdown
                   Align(
                     alignment: Alignment.centerRight,
-                    child: Container(
+                    child: SizedBox(
                       height: 40,
                       width: 200,
                       child: DropdownButtonFormField<String>(
@@ -83,8 +128,7 @@ class _AdSignupPageState extends State<AdSignupPage> {
                           ),
                           filled: true,
                           fillColor: Colors.grey.shade100,
-                          contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
                         items: _roles.map((role) {
                           return DropdownMenuItem(
@@ -155,9 +199,7 @@ class _AdSignupPageState extends State<AdSignupPage> {
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
                         ),
                         onPressed: _togglePasswordVisibility,
                       ),
@@ -171,7 +213,7 @@ class _AdSignupPageState extends State<AdSignupPage> {
                   ),
                   const SizedBox(height: 30),
 
-                  /// Sign Up Button
+                  /// Login Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -185,14 +227,14 @@ class _AdSignupPageState extends State<AdSignupPage> {
                         elevation: 3,
                       ),
                       child: const Text(
-                        "Sign Up",
+                        "Login as Admin",
                         style: TextStyle(fontSize: 16, color: Colors.white),
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
 
-                  /// Forgot Password Link
+                  /// Forgot Password
                   Align(
                     alignment: Alignment.centerLeft,
                     child: TextButton(

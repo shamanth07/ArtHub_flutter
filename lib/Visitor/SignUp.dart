@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:art_hub/Visitor/LogIn.dart';
 import 'package:art_hub/Artist/ArSignUp.dart';
 import 'package:art_hub/Admin/AdLogin.dart';
 import 'package:art_hub/Visitor/SignUp.dart';
+import 'package:art_hub/Visitor/Vhome.dart';
 import 'package:art_hub/Artist/ArLogin.dart';
 
 class SigninPage extends StatefulWidget {
@@ -27,35 +30,67 @@ class _SigninPageState extends State<SigninPage> {
   }
 
   void _navigateToRolePage(String role) {
-    Widget? targetPage;
-
     switch (role) {
       case 'Visitor':
         return; // Stay on the same page
       case 'Artist':
-        targetPage = ArSignupPage();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => ArSignupPage()),
+        );
         break;
       case 'Admin':
-        targetPage = AdSignupPage();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => AdSignUpPage()),
+        );
         break;
-    }
-
-    if (targetPage != null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => targetPage!),
-      );
     }
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
       final role = _selectedRole;
 
-      print("Email: $email | Password: $password | Role: $role");
-      // Firebase or backend logic goes here
+      try {
+        UserCredential userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(email: email, password: password);
+
+        String uid = userCredential.user!.uid;
+
+        DatabaseReference userRef = FirebaseDatabase.instance.ref('users/$uid');
+
+        DatabaseEvent snapshot = await userRef.once();
+        if (!snapshot.snapshot.exists) {
+          await userRef.set({
+            'email': email,
+            'role': role,
+            'password': password,
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Account created successfully.")),
+          );
+        } else {
+          await userRef.update({'role': role});
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Account updated successfully.")),
+          );
+        }
+
+        // Navigate to Home Page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) =>  HomePage()),
+        );
+      } on FirebaseAuthException catch (e) {
+        String error = "Sign-up failed.";
+        if (e.code == 'email-already-in-use') error = "Email already in use.";
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      }
     }
   }
 
@@ -74,7 +109,7 @@ class _SigninPageState extends State<SigninPage> {
                   Image.asset('assets/images/arthub_logo.png', height: 200),
                   const SizedBox(height: 10),
 
-                  /// Dropdown Role Selector
+                  // Role Dropdown
                   Align(
                     alignment: Alignment.centerRight,
                     child: Container(
@@ -109,7 +144,7 @@ class _SigninPageState extends State<SigninPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  /// Email Field
+                  // Email Field
                   Align(
                     alignment: Alignment.centerLeft,
                     child: const Text(
@@ -138,7 +173,7 @@ class _SigninPageState extends State<SigninPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  /// Password Field
+                  // Password Field
                   Align(
                     alignment: Alignment.centerLeft,
                     child: const Text(
@@ -170,7 +205,7 @@ class _SigninPageState extends State<SigninPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  /// Terms Checkbox
+                  // Terms Checkbox
                   Row(
                     children: [
                       Checkbox(
@@ -200,7 +235,7 @@ class _SigninPageState extends State<SigninPage> {
                   ),
                   const SizedBox(height: 30),
 
-                  /// Submit Button
+                  // Submit Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -221,7 +256,7 @@ class _SigninPageState extends State<SigninPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  /// Already have account link
+                  // Already have account link
                   Align(
                     alignment: Alignment.center,
                     child: TextButton(
@@ -254,3 +289,5 @@ class _SigninPageState extends State<SigninPage> {
     );
   }
 }
+
+// Dummy HomePage for navigation

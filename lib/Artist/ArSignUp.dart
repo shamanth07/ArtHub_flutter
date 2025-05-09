@@ -37,7 +37,7 @@ class _ArSigninPageState extends State<ArSigninPage> {
         targetPage = ArSigninPage();
         break;
       case 'Admin':
-        targetPage = AdSignupPage();
+        targetPage = AdSignUpPage();
         break;
       default:
         return;

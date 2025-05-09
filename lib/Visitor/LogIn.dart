@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:art_hub/Visitor/SignUp.dart'; // must contain class SignUp
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:art_hub/Visitor/SignUp.dart';
 import 'package:art_hub/Visitor/ForgetPassword.dart';
-import 'package:art_hub/Admin/AdLogin.dart'; // must contain class AdSignupPage
-import 'package:art_hub/Artist/ArSignUp.dart'; // must contain class ArSignUpPage
+import 'package:art_hub/Admin/AdLogin.dart';
+import 'package:art_hub/Artist/ArSignUp.dart';
+import 'package:art_hub/Visitor/Vhome.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -13,7 +15,6 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
-
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -25,14 +26,35 @@ class _SignupPageState extends State<SignupPage> {
     setState(() => _obscurePassword = !_obscurePassword);
   }
 
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate()) {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
-      final role = _selectedRole;
 
-      print("Email: $email | Password: $password | Role: $role");
-      // Add Firebase or backend logic here
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+
+        // Navigate to home page on successful login
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>  HomePage(),
+          ),
+        );
+      } on FirebaseAuthException catch (e) {
+        String message = 'Login failed.';
+        if (e.code == 'user-not-found') {
+          message = 'User not found.';
+        } else if (e.code == 'wrong-password') {
+          message = 'Wrong password.';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 
@@ -47,7 +69,7 @@ class _SignupPageState extends State<SignupPage> {
         targetPage = ArSigninPage();
         break;
       case 'Admin':
-        targetPage = AdSignupPage();
+        targetPage = AdSignUpPage();
         break;
       default:
         return;
@@ -77,7 +99,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 10),
 
-                  /// 👇 Role Dropdown with Navigation
+                  /// Role Dropdown
                   Align(
                     alignment: Alignment.centerRight,
                     child: Container(
@@ -92,8 +114,7 @@ class _SignupPageState extends State<SignupPage> {
                           ),
                           filled: true,
                           fillColor: Colors.grey.shade100,
-                          contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
                         items: _roles.map((role) {
                           return DropdownMenuItem(
@@ -114,7 +135,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  /// 👇 Email Field
+                  /// Email Field
                   Align(
                     alignment: Alignment.centerLeft,
                     child: const Text(
@@ -147,7 +168,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  /// 👇 Password Field
+                  /// Password Field
                   Align(
                     alignment: Alignment.centerLeft,
                     child: const Text(
@@ -183,7 +204,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 30),
 
-                  /// 👇 Sign In Button
+                  /// Sign In Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -204,7 +225,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  /// 👇 Forgot Password & Sign Up Links
+                  /// Forgot Password & Sign Up Links
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -222,7 +243,7 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                       TextButton(
                         onPressed: () {
-                          _navigateToRolePage(_selectedRole); // 👈 based on dropdown
+                          _navigateToRolePage(_selectedRole);
                         },
                         child: const Text(
                           "Sign Up",
@@ -240,3 +261,5 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 }
+
+/// Dummy Home Page to navigate to after login
