@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:art_hub/Admin/AdForgetPassword.dart';
 import 'package:art_hub/Artist/ArSignUp.dart';
-import 'package:art_hub/Visitor/SignUp.dart';
+ import 'package:art_hub/Visitor/SignUp.dart';
 import 'package:art_hub/Admin/Adhome.dart';
 
 class AdSignUpPage extends StatefulWidget {

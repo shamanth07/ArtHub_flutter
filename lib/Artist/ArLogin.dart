@@ -112,7 +112,7 @@ class _ArSignupPageState extends State<ArSignupPage> {
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                 // const SizedBox(height: 8),
                   TextFormField(
                     controller: _emailController,
                     decoration: const InputDecoration(
