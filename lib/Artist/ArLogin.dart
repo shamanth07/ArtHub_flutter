@@ -7,6 +7,7 @@ import 'package:art_hub/Admin/AdLogin.dart';
 import 'package:art_hub/Visitor/LogIn.dart';
 import 'package:art_hub/Artist/ArLogin.dart';
 import 'package:art_hub/Artist/ArSignUp.dart';
+import 'package:art_hub/Artist/ArForgetPassword.dart';
 
 class ArSignupPage extends StatefulWidget {
   const ArSignupPage({super.key});
@@ -232,25 +233,31 @@ class _ArSignupPageState extends State<ArSignupPage> {
                   const SizedBox(height: 20),
 
                   /// Sign Up Link
-                  Align(
-                    alignment: Alignment.center,
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => ArSigninPage()),
-                        );
-                      },
-                      child: RichText(
-                        text: const TextSpan(
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) =>  ArForgetPassword()),
+                          );
+                        },
+                        child: const Text(
+                          "Forgot Password?",
                           style: TextStyle(color: Colors.grey),
-                          children: [
-                            TextSpan(text: "Don't have an account? "),
-                            TextSpan(text: "Sign Up", style: TextStyle(color: Colors.red)),
-                          ],
                         ),
                       ),
-                    ),
+                      TextButton(
+                        onPressed: () {
+                          _navigateToRolePage(_selectedRole);
+                        },
+                        child: const Text(
+                          "Sign Up",
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
