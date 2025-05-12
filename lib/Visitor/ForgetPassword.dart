@@ -61,7 +61,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                     print("Reset link sent to: ${emailController.text}");
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
+                    backgroundColor: Colors.white70,
                     foregroundColor: Colors.black,
                     side: BorderSide(color: Colors.black),
                     shape: RoundedRectangleBorder(
@@ -79,11 +79,10 @@ class ForgotPasswordScreen extends StatelessWidget {
                 width: 160,
                 child: OutlinedButton(
                   onPressed: () {
-                    // TODO: Navigate to Login screen
                     Navigator.pop(context);
                   },
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.grey,
+                    backgroundColor: Colors.white70,
                     foregroundColor: Colors.black,
                     side: BorderSide(color: Colors.black),
                     shape: RoundedRectangleBorder(
@@ -93,6 +92,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                   child: Text("Back To Login"),
                 ),
               ),
+
             ],
           ),
         ),
