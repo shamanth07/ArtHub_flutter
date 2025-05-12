@@ -1,91 +1,99 @@
 import 'package:flutter/material.dart';
 
-class ForgetPasswordPage extends StatefulWidget {
-  const ForgetPasswordPage({super.key});
 
-  @override
-  State<ForgetPasswordPage> createState() => _ForgetPasswordPageState();
-}
-
-class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
-  final TextEditingController _emailController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-
-  void _sendResetLink() {
-    if (_formKey.currentState!.validate()) {
-      final email = _emailController.text.trim();
-
-      // TODO: Add Firebase or backend reset logic here
-      print('Password reset link sent to: $email');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password reset link has been sent!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
+class ForgotPasswordScreen extends StatelessWidget {
+  final TextEditingController emailController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text("Forgot Password"),
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Enter your registered email',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+          padding: const EdgeInsets.symmetric(horizontal: 30.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Title
+              Text(
+                "Forgot Password",
+                style: TextStyle(
+                  fontSize: 35,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    hintText: "example@email.com",
-                    border: OutlineInputBorder(),
-                    labelText: 'Email',
+              ),
+
+              SizedBox(height: 60),
+
+              // Email label
+              Align(
+                alignment: Alignment.center,
+                child: Text(
+                  "Email:",
+                  style: TextStyle(
+                    fontSize: 35,
+                    fontWeight: FontWeight.w500,
                   ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value!.isEmpty) return "Please enter your email";
-                    if (!value.contains('@')) return "Enter a valid email";
-                    return null;
+                ),
+              ),
+
+              SizedBox(height: 40),
+
+              // Email TextField
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  hintText: "Enter your Email here....",
+                  hintStyle: TextStyle(color: Colors.grey),
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                ),
+              ),
+
+              SizedBox(height: 50),
+
+              // Send Email button
+              SizedBox(
+                width: 160,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // TODO: Implement send reset email logic
+                    print("Reset link sent to: ${emailController.text}");
                   },
-                ),
-                const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _sendResetLink,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                    child: const Text(
-                      "Send Reset Link",
-                      style: TextStyle(fontSize: 16, color: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey,
+                    foregroundColor: Colors.black,
+                    side: BorderSide(color: Colors.black),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
+                  child: Text("Send Email"),
                 ),
-              ],
-            ),
+              ),
+
+              SizedBox(height: 40),
+
+              // Back To Login button
+              SizedBox(
+                width: 160,
+                child: OutlinedButton(
+                  onPressed: () {
+                    // TODO: Navigate to Login screen
+                    Navigator.pop(context);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.grey,
+                    foregroundColor: Colors.black,
+                    side: BorderSide(color: Colors.black),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+                  child: Text("Back To Login"),
+                ),
+              ),
+            ],
           ),
         ),
       ),

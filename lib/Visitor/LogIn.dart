@@ -233,7 +233,7 @@ class _SignupPageState extends State<SignupPage> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const ForgetPasswordPage()),
+                            MaterialPageRoute(builder: (context) =>  ForgotPasswordScreen()),
                           );
                         },
                         child: const Text(
