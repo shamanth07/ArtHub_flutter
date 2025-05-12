@@ -1,91 +1,119 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class AdForgetPasswordPage extends StatefulWidget {
-  const AdForgetPasswordPage({super.key});
+class AdForgetPassword extends StatelessWidget {
+  final TextEditingController emailController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  @override
-  State<AdForgetPasswordPage> createState() => _AdForgetPasswordPageState();
-}
+  AdForgetPassword({super.key});
 
-class _AdForgetPasswordPageState extends State<AdForgetPasswordPage> {
-  final TextEditingController _emailController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  void _sendResetEmail(BuildContext context) async {
+    final email = emailController.text.trim();
 
-  void _sendResetLink() {
-    if (_formKey.currentState!.validate()) {
-      final email = _emailController.text.trim();
-
-      // TODO: Add Firebase or backend reset logic here
-      print('Password reset link sent to: $email');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password reset link has been sent!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+    if (email.isEmpty) {
+      _showMessage(context, "Please enter your email.");
+      return;
     }
+
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      _showMessage(context, "Password reset link sent to $email. Please check your email.");
+    } on FirebaseAuthException catch (e) {
+      _showMessage(context, "Error: ${e.message}");
+    }
+  }
+
+  void _showMessage(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Message"),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text("Forgot Password"),
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Enter your registered email',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+          padding: const EdgeInsets.symmetric(horizontal: 30.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Forgot Password",
+                style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 60),
+
+              Align(
+                alignment: Alignment.center,
+                child: Text(
+                  "Email:",
+                  style: TextStyle(fontSize: 35, fontWeight: FontWeight.w500),
                 ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    hintText: "example@email.com",
-                    border: OutlineInputBorder(),
-                    labelText: 'Email',
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value!.isEmpty) return "Please enter your email";
-                    if (!value.contains('@')) return "Enter a valid email";
-                    return null;
+              ),
+              SizedBox(height: 40),
+
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  hintText: "Enter your Email here....",
+                  hintStyle: TextStyle(color: Colors.grey),
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                ),
+              ),
+              SizedBox(height: 50),
+
+              SizedBox(
+                width: 160,
+                child: ElevatedButton(
+                  onPressed: () {
+                    _sendResetEmail(context);
                   },
-                ),
-                const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _sendResetLink,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                    child: const Text(
-                      "Send Reset Link",
-                      style: TextStyle(fontSize: 16, color: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white70,
+                    foregroundColor: Colors.black,
+                    side: BorderSide(color: Colors.black),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
+                  child: Text("Send Email"),
                 ),
-              ],
-            ),
+              ),
+              SizedBox(height: 40),
+
+              SizedBox(
+                width: 160,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white70,
+                    foregroundColor: Colors.black,
+                    side: BorderSide(color: Colors.black),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+                  child: Text("Back To Login"),
+                ),
+              ),
+            ],
           ),
         ),
       ),

@@ -242,7 +242,7 @@ class _AdSignUpPageState extends State<AdSignUpPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const AdForgetPasswordPage()),
+                              builder: (context) =>  AdForgetPassword()),
                         );
                       },
                       child: const Text(
