@@ -1,8 +1,45 @@
 import 'package:flutter/material.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ForgotPasswordScreen extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  ForgotPasswordScreen({super.key});
+
+  void _sendResetEmail(BuildContext context) async {
+    final email = emailController.text.trim();
+
+    if (email.isEmpty) {
+      _showMessage(context, "Please enter your email.");
+      return;
+    }
+
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      _showMessage(context, "Password reset link sent to $email. Please check your email.");
+    } on FirebaseAuthException catch (e) {
+      _showMessage(context, "Error: ${e.message}");
+    }
+  }
+
+  void _showMessage(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Message"),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,32 +51,15 @@ class ForgotPasswordScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Title
-              Text(
-                "Forgot Password",
-                style: TextStyle(
-                  fontSize: 35,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
+              Text("Forgot Password", style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
               SizedBox(height: 60),
 
-              // Email label
               Align(
                 alignment: Alignment.center,
-                child: Text(
-                  "Email:",
-                  style: TextStyle(
-                    fontSize: 35,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                child: Text("Email:", style: TextStyle(fontSize: 35, fontWeight: FontWeight.w500)),
               ),
-
               SizedBox(height: 40),
 
-              // Email TextField
               TextField(
                 controller: emailController,
                 decoration: InputDecoration(
@@ -49,50 +69,36 @@ class ForgotPasswordScreen extends StatelessWidget {
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                 ),
               ),
-
               SizedBox(height: 50),
 
-              // Send Email button
               SizedBox(
                 width: 160,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implement send reset email logic
-                    print("Reset link sent to: ${emailController.text}");
-                  },
+                  onPressed: () => _sendResetEmail(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white70,
                     foregroundColor: Colors.black,
                     side: BorderSide(color: Colors.black),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(5),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
                   ),
                   child: Text("Send Email"),
                 ),
               ),
-
               SizedBox(height: 40),
 
-              // Back To Login button
               SizedBox(
                 width: 160,
                 child: OutlinedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+                  onPressed: () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
                     backgroundColor: Colors.white70,
                     foregroundColor: Colors.black,
                     side: BorderSide(color: Colors.black),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(5),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
                   ),
                   child: Text("Back To Login"),
                 ),
               ),
-
             ],
           ),
         ),
