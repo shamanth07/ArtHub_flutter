@@ -231,6 +231,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
                       hintText: "Enter Event Location",
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+
                     ),
                   ),
                 ),
@@ -239,6 +240,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
                   onPressed: () {
                     print("Searching location: ${locationController.text}");
                   },
+
                   child: Text("Search"),
                 ),
               ],
