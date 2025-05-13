@@ -26,7 +26,7 @@ class CreateEventPage extends StatelessWidget {
           children: [
             // Header image
             Container(
-              height: 150,
+              height: 180,
               width: double.infinity,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.black, width: 0.5),

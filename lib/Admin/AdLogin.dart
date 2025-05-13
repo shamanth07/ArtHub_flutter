@@ -74,7 +74,7 @@ class _AdSignUpPageState extends State<AdSignUpPage> {
 
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => AdHomePage()),
+              MaterialPageRoute(builder: (_) => AdminEventsPage()),
             );
           } else {
             await FirebaseAuth.instance.signOut();

@@ -7,6 +7,7 @@ import 'Artist/ArSignUp.dart';
 import 'Visitor/LogIn.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:art_hub/Admin/CreatEvent.dart';
+import 'package:art_hub/Admin/Adhome.dart';
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -26,7 +27,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home:CreateEventPage(),
+      home:AdminEventsPage(),
     );
   }
 }
