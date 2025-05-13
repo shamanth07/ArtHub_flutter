@@ -19,10 +19,11 @@ class AdminEventsPage extends StatelessWidget {
         ),
         centerTitle: true,
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
+          builder: (context) =>
+              IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
         ),
       ),
       body: Padding(
@@ -30,6 +31,7 @@ class AdminEventsPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Create Event Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -48,11 +50,13 @@ class AdminEventsPage extends StatelessWidget {
                 },
                 child: const Text(
                   "Create Event",
-                  style: TextStyle(fontSize: 20,color: Colors.black),
+                  style: TextStyle(fontSize: 20, color: Colors.black),
                 ),
               ),
             ),
             const SizedBox(height: 20),
+
+            // Created Events Title
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -62,53 +66,35 @@ class AdminEventsPage extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
+            // Event Cards (Example)
+
+
+            const Spacer(), // Pushes Back button to the bottom
+
+            // Back Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[300],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text(
+                  "Back",
+                  style: TextStyle(fontSize: 18, color: Colors.black),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  static Widget eventCard({required String title, required String time}) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        side: const BorderSide(color: Colors.black26),
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.chevron_right),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                OutlinedButton(
-                  onPressed: () {},
-                  child: const Text("Edit", style: TextStyle(fontSize: 14)),
-                ),
-                Text(
-                  time,
-                  style: const TextStyle(color: Colors.grey, fontSize: 14),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
