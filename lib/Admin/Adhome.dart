@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:art_hub/Admin/CreatEvent.dart';
-
+import 'package:art_hub/Admin/AdLogin.dart';
 class AdminEventsPage extends StatelessWidget {
   const AdminEventsPage({super.key});
 
@@ -12,22 +12,28 @@ class AdminEventsPage extends StatelessWidget {
           children: const [DrawerHeader(child: Text("Menu"))],
         ),
       ),
+
       appBar: AppBar(
-        title: const Text(
-          "Admin",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
+        toolbarHeight: 70, // Increase the height of the AppBar
+        title: const Padding(
+          padding: EdgeInsets.only(top: 50), // Move text slightly downward
+          child: Text(
+            "Admin",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
+          ),
         ),
+
         centerTitle: true,
         leading: Builder(
-          builder: (context) =>
-              IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () => Scaffold.of(context).openDrawer(),
-              ),
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
         ),
       ),
+
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal:20, vertical: 30),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -54,7 +60,7 @@ class AdminEventsPage extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
 
             // Created Events Title
             const Align(
@@ -83,7 +89,10 @@ class AdminEventsPage extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 onPressed: () {
-                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => AdSignUpPage()),
+                  );
                 },
                 child: const Text(
                   "Back",
