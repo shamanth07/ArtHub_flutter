@@ -211,11 +211,13 @@ class _CreateEventPageState extends State<CreateEventPage> {
               height: 150,
               width: double.infinity,
               decoration: BoxDecoration(
+                color: Colors.lightGreen.shade50,
                 image: DecorationImage(
                   image: AssetImage('assets/images/map_placeholder.jpg'),
                   fit: BoxFit.cover,
                 ),
               ),
+
               child: Center(child: Icon(Icons.location_pin, size: 40)),
             ),
             SizedBox(height: 10),
@@ -260,8 +262,12 @@ class _CreateEventPageState extends State<CreateEventPage> {
                 child: ElevatedButton(
                   onPressed: createEvent,
                   style: ElevatedButton.styleFrom(
+
                     backgroundColor: Colors.grey[300],
                     foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero,
+                    ),
                   ),
                   child: Text("Create"),
                 ),
