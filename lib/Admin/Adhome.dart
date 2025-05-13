@@ -129,19 +129,21 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
                   final eventDate = event['eventDate'] ?? 0;
                   return Card(
                     elevation: 3,
-                    margin: const EdgeInsets.symmetric(vertical: 8),
+
+                    margin: const EdgeInsets.symmetric(vertical: 3),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Banner Image
                         Padding(
-                          padding: const EdgeInsets.all(12.0),
+
+                          padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 12),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(event['title'] ?? '',
                                   style: const TextStyle(
-                                      fontSize: 18, fontWeight: FontWeight.bold)),
+                                      fontSize: 16, fontWeight: FontWeight.bold)),
                               const SizedBox(height: 6),
                               Text(event['description'] ?? ''),
                               const SizedBox(height: 6),
@@ -149,7 +151,7 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
 
                               Text("Time: ${event['time']}"),
                               Text("Max Artists: ${event['maxArtists']}"),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
