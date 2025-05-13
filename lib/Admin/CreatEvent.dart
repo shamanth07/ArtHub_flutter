@@ -5,7 +5,7 @@ class CreateEventPage extends StatelessWidget {
   final TextEditingController maxVisitorsController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
   final TextEditingController timeController = TextEditingController();
-
+  final TextEditingController locationController = TextEditingController();
   CreateEventPage({super.key});
 
   @override
@@ -36,7 +36,7 @@ class CreateEventPage extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 15),
 
             // Event title
             TextField(
@@ -53,10 +53,10 @@ class CreateEventPage extends StatelessWidget {
                   color: Colors.grey,
                 ),
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               ),
             ),
-            SizedBox(height: 15),
+            SizedBox(height: 10),
 
 
             // Description field
@@ -65,9 +65,10 @@ class CreateEventPage extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: "Description",
                 border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               ),
             ),
-            SizedBox(height: 12),
+            SizedBox(height: 10),
 
             // Date and Time fields side by side
             Row(
@@ -78,6 +79,7 @@ class CreateEventPage extends StatelessWidget {
                     decoration: InputDecoration(
                       hintText: "Date",
                       border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                     ),
                     onTap: () async {
                       DateTime? pickedDate = await showDatePicker(
@@ -101,6 +103,7 @@ class CreateEventPage extends StatelessWidget {
                     decoration: InputDecoration(
                       hintText: "Time",
                       border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                     ),
                     onTap: () async {
                       TimeOfDay? pickedTime = await showTimePicker(
@@ -117,34 +120,66 @@ class CreateEventPage extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 10),
 
+            // Map image (placeholder)
             // Map image (placeholder)
             Container(
               height: 150,
               width: double.infinity,
               decoration: BoxDecoration(
-
                 color: Colors.grey[200],
                 image: DecorationImage(
-                  image: AssetImage('assets/images/map_placeholder.jpg'), // Replace with actual map
+                  image: AssetImage('assets/images/map_placeholder.jpg'),
                   fit: BoxFit.cover,
                 ),
               ),
               child: Center(child: Icon(Icons.location_pin, size: 40, color: Colors.blue)),
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 10),
+
+// Location input with search button
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: locationController,
+                    decoration: InputDecoration(
+                      hintText: "Enter Event Location",
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    // Implement search location logic
+                    print("Searching location: ${locationController.text}");
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text("Search"),
+                ),
+              ],
+            ),
+            SizedBox(height: 10),
+
 
             // Maximum visitors field
             TextField(
               controller: maxVisitorsController,
               decoration: InputDecoration(
-                hintText: "Maximum Visitors Allowed",
+                hintText: "Maximum Artists Allowed",
                 border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               ),
               keyboardType: TextInputType.number,
             ),
-            SizedBox(height: 15),
+            SizedBox(height: 10),
 
             // Create button
             Center(
