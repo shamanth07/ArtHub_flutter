@@ -39,11 +39,25 @@ class CreateEventPage extends StatelessWidget {
             SizedBox(height: 20),
 
             // Event title
-            Text(
-              "Modern Art Expo",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            TextField(
+              controller: TextEditingController(),
+              style: TextStyle(
+                fontSize: 24, // Makes it look like a title
+                fontWeight: FontWeight.bold,
+              ),
+              decoration: InputDecoration(
+                hintText: "Enter Title",
+                hintStyle: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey,
+                ),
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+              ),
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 15),
+
 
             // Description field
             TextField(
@@ -53,7 +67,7 @@ class CreateEventPage extends StatelessWidget {
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 12),
 
             // Date and Time fields side by side
             Row(
@@ -130,7 +144,7 @@ class CreateEventPage extends StatelessWidget {
               ),
               keyboardType: TextInputType.number,
             ),
-            SizedBox(height: 24),
+            SizedBox(height: 15),
 
             // Create button
             Center(
