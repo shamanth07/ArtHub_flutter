@@ -15,7 +15,7 @@ class AdminEventsPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           "Admin",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
         ),
         centerTitle: true,
         leading: Builder(
@@ -34,6 +34,7 @@ class AdminEventsPage extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white60,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.zero,
                   ),
@@ -47,7 +48,7 @@ class AdminEventsPage extends StatelessWidget {
                 },
                 child: const Text(
                   "Create Event",
-                  style: TextStyle(fontSize: 18),
+                  style: TextStyle(fontSize: 20,color: Colors.black),
                 ),
               ),
             ),
