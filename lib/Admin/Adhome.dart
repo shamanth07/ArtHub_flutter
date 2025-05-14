@@ -70,6 +70,7 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: Drawer(
+        width: 500,
         child: ListView(children: const [DrawerHeader(child: Text("Menu"))]),
       ),
       appBar: AppBar(
