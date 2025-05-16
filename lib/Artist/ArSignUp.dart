@@ -74,7 +74,7 @@ class _ArSigninPageState extends State<ArSigninPage> {
         await userRef.set({
           'email': email,
           'role': 'Artist',
-          'password': password,  // Save password in database
+            // Save password in database
         });
 
         Navigator.pushReplacement(
