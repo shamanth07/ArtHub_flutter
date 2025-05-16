@@ -1,9 +1,9 @@
-
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 import 'package:newarthub/Admin/CreatEvent.dart';
 import 'package:newarthub/Admin/AdLogin.dart';
+import 'package:newarthub/Admin/EditEvent.dart'; // Import the EditEventPage
 
 class AdminEventsPage extends StatefulWidget {
   const AdminEventsPage({super.key});
@@ -30,7 +30,7 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
           events = data.entries.map((entry) {
             return {
               'key': entry.key,
-              ...Map<String, dynamic>.from(entry.value)
+              ...Map<String, dynamic>.from(entry.value),
             };
           }).toList();
         });
@@ -49,11 +49,25 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
     );
   }
 
-  void editEvent(Map<dynamic, dynamic> event) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Edit ${event['title']} (coming soon)")),
+  void editEvent(Map<dynamic, dynamic> event) async {
+    final bool? updated = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditEventPage(
+          eventKey: event['key'],
+          eventData: event,
+        ),
+      ),
     );
+
+    if (updated == true) {
+      fetchEvents();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Event updated successfully")),
+      );
+    }
   }
+
 
   String formatDate(dynamic timestamp) {
     final int millis = (timestamp is double)
@@ -187,14 +201,16 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
                     MaterialPageRoute(builder: (context) => const CreateEventPage()),
                   );
                 },
-                child: const Text("Create Event", style: TextStyle(fontSize: 20, color: Colors.black)),
+                child: const Text("Create Event",
+                    style: TextStyle(fontSize: 20, color: Colors.black)),
               ),
             ),
             const SizedBox(height: 30),
 
             const Align(
               alignment: Alignment.centerLeft,
-              child: Text("Created Events", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              child: Text("Created Events",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             ),
             const SizedBox(height: 10),
 
@@ -211,13 +227,15 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
                     elevation: 3,
                     margin: const EdgeInsets.symmetric(vertical: 3),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 12),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 5, horizontal: 12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(event['title'] ?? '',
                               style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold)),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold)),
                           const SizedBox(height: 6),
                           Text(event['description'] ?? ''),
                           const SizedBox(height: 6),
@@ -230,13 +248,20 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
                             children: [
                               TextButton.icon(
                                 onPressed: () => editEvent(event),
-                                icon: const Icon(Icons.edit, color: Colors.blue),
-                                label: const Text("Edit", style: TextStyle(color: Colors.blue)),
+                                icon: const Icon(Icons.edit,
+                                    color: Colors.blue),
+                                label: const Text("Edit",
+                                    style:
+                                    TextStyle(color: Colors.blue)),
                               ),
                               TextButton.icon(
-                                onPressed: () => deleteEvent(event['key']),
-                                icon: const Icon(Icons.cancel, color: Colors.red),
-                                label: const Text("Cancel", style: TextStyle(color: Colors.red)),
+                                onPressed: () =>
+                                    deleteEvent(event['key']),
+                                icon: const Icon(Icons.cancel,
+                                    color: Colors.red),
+                                label: const Text("Cancel",
+                                    style:
+                                    TextStyle(color: Colors.red)),
                               ),
                             ],
                           ),
@@ -261,7 +286,8 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
                   Navigator.push(context,
                       MaterialPageRoute(builder: (context) => const AdSignUpPage()));
                 },
-                child: const Text("Back", style: TextStyle(fontSize: 18, color: Colors.black)),
+                child: const Text("Back",
+                    style: TextStyle(fontSize: 18, color: Colors.black)),
               ),
             ),
           ],
@@ -275,7 +301,8 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
       children: [
         ListTile(
           leading: Icon(icon, color: Colors.black),
-          title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+          title: Text(title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
           onTap: onTap,
         ),
         const Divider(thickness: 1),
