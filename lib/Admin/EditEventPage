@@ -1,1 +1,296 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:image_picker/image_picker.dart';
+
+class EditEventPage extends StatefulWidget {
+  final String eventKey;
+  final Map<dynamic, dynamic> eventData;
+
+  const EditEventPage({
+    Key? key,
+    required this.eventKey,
+    required this.eventData,
+  }) : super(key: key);
+
+  @override
+  _EditEventPageState createState() => _EditEventPageState();
+}
+
+
+
+class _EditEventPageState extends State<EditEventPage> {
+  late TextEditingController titleController;
+  late TextEditingController descriptionController;
+  late TextEditingController maxArtistsController;
+  late TextEditingController dateController;
+  late TextEditingController timeController;
+  late TextEditingController locationController;
+
+  DateTime? selectedDate;
+  File? _pickedImage;
+
+  // For demo, we assume bannerImageUrl is a string URL or local path (no Firebase Storage upload included)
+  String? bannerImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeControllers();
+    bannerImageUrl = widget.eventData['bannerImageUrl'];
+  }
+
+  void _initializeControllers() {
+    titleController = TextEditingController(text: widget.eventData['title'] ?? '');
+    descriptionController = TextEditingController(text: widget.eventData['description'] ?? '');
+    maxArtistsController = TextEditingController(
+      text: widget.eventData['maxArtists']?.toString() ?? '',
+    );
+
+    final eventDateMillis = widget.eventData['eventDate'];
+    if (eventDateMillis != null && eventDateMillis is int) {
+      final dt = DateTime.fromMillisecondsSinceEpoch(eventDateMillis);
+      selectedDate = dt;
+      dateController = TextEditingController(text: "${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}");
+    } else {
+      dateController = TextEditingController();
+    }
+
+    timeController = TextEditingController(text: widget.eventData['time'] ?? '');
+    locationController = TextEditingController(text: widget.eventData['location'] ?? '');
+  }
+
+  Future<void> pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+
+    if (picked != null) {
+      setState(() {
+        _pickedImage = File(picked.path);
+        // When picking new image, update bannerImageUrl to local file path temporarily
+        bannerImageUrl = picked.path;
+      });
+    }
+  }
+
+  Future<void> updateEvent() async {
+    if (titleController.text.isEmpty ||
+        descriptionController.text.isEmpty ||
+        dateController.text.isEmpty ||
+        timeController.text.isEmpty ||
+        maxArtistsController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all required fields")),
+      );
+      return;
+    }
+
+    final int maxArtists = int.tryParse(maxArtistsController.text) ?? 0;
+
+    final DateTime date = selectedDate ??
+        DateTime.tryParse(dateController.text) ??
+        DateTime.now();
+
+    // Update event data map
+    final eventData = {
+      "eventId": widget.eventKey,
+      "title": titleController.text,
+      "description": descriptionController.text,
+      "eventDate": date.millisecondsSinceEpoch,
+      "time": timeController.text,
+      "maxArtists": maxArtists,
+      "bannerImageUrl": bannerImageUrl ?? "https://your-default-banner-url.jpg",
+      "location": locationController.text,
+    };
+
+    try {
+      final ref = FirebaseDatabase.instance.ref("events").child(widget.eventKey);
+      await ref.update(eventData);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Event updated successfully")),
+      );
+
+      Navigator.pop(context, true); // Return true to indicate success
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to update event: $e")),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    descriptionController.dispose();
+    maxArtistsController.dispose();
+    dateController.dispose();
+    timeController.dispose();
+    locationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Edit Event"),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: pickImage,
+              child: Container(
+                height: 180,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black),
+                  image: DecorationImage(
+                    image: bannerImageUrl != null
+                        ? (bannerImageUrl!.startsWith("http")
+                        ? NetworkImage(bannerImageUrl!) as ImageProvider
+                        : FileImage(File(bannerImageUrl!)))
+                        : const AssetImage('assets/images/art_placeholder.jpg'),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                child: const Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Icon(Icons.edit, color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: titleController,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              decoration: const InputDecoration(
+                hintText: "Enter Title",
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(
+                hintText: "Description",
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: dateController,
+                    decoration: const InputDecoration(
+                      hintText: "Date",
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    ),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate ?? DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          selectedDate = picked;
+                          dateController.text =
+                          "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+                        });
+                      }
+                    },
+                    readOnly: true,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: timeController,
+                    decoration: const InputDecoration(
+                      hintText: "Time",
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    ),
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.now(),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          timeController.text = picked.format(context);
+                        });
+                      }
+                    },
+                    readOnly: true,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            TextField(
+              controller: locationController,
+              decoration: const InputDecoration(
+                hintText: "Event Location",
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            TextField(
+              controller: maxArtistsController,
+              decoration: const InputDecoration(
+                hintText: "Maximum Artists Allowed",
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 20),
+
+            Center(
+              child: SizedBox(
+                width: 160,
+                child: ElevatedButton(
+                  onPressed: updateEvent,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[300],
+                    foregroundColor: Colors.black,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero,
+                    ),
+                  ),
+                  child: const Text("Update"),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
