@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
-import 'package:art_hub/Admin/CreatEvent.dart';
-import 'package:art_hub/Admin/AdLogin.dart';
+import 'package:newarthub/Admin/CreatEvent.dart';
+import 'package:newarthub/Admin/AdLogin.dart';
 
 class AdminEventsPage extends StatefulWidget {
   const AdminEventsPage({super.key});
@@ -117,9 +117,42 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
             }),
             drawerItem(Icons.insert_drive_file, "Reports", () {}),
             drawerItem(Icons.settings, "Settings", () {}),
+
+            // Logout button just below Settings
+            drawerItem(
+              Icons.logout,
+              "Logout",
+                  () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Confirm Logout'),
+                    content: const Text('Are you sure you want to logout?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(), // dismiss dialog
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // dismiss dialog
+                          // TODO: Add logout logic here, e.g. FirebaseAuth.instance.signOut();
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => const AdSignUpPage()),
+                          );
+                        },
+                        child: const Text('Logout', style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
+
       appBar: AppBar(
         toolbarHeight: 70,
         title: const Padding(
