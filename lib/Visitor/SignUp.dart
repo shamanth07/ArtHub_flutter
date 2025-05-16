@@ -67,7 +67,7 @@ class _SigninPageState extends State<SigninPage> {
           await userRef.set({
             'email': email,
             'role': role,
-            'password': password,
+            
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
