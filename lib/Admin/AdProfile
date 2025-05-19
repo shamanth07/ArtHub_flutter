@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
+import 'package:newarthub/Admin/AdChangePassword.dart';
 class AdminProfilePage extends StatelessWidget {
   const AdminProfilePage({super.key});
 
@@ -79,7 +79,13 @@ class AdminProfilePage extends StatelessWidget {
 
               // Change password (clickable)
               GestureDetector(
-                onTap: () => _changePassword(context),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+                  );
+                },
+
                 child: const Text(
                   'Change Password',
                   style: TextStyle(
