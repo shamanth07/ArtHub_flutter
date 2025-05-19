@@ -1,6 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:uuid/uuid.dart';
 
 class UploadArtworkPage extends StatefulWidget {
   const UploadArtworkPage({super.key});
@@ -19,6 +23,8 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
   final TextEditingController yearController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
 
+  bool _isUploading = false;
+
   Future<void> pickImage() async {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -26,7 +32,7 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
     }
   }
 
-  void saveArtwork() {
+  Future<void> saveArtwork() async {
     if (_image == null ||
         titleController.text.isEmpty ||
         descriptionController.text.isEmpty ||
@@ -39,9 +45,63 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Artwork saved locally')),
-    );
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to upload artwork')),
+      );
+      return;
+    }
+
+    setState(() => _isUploading = true);
+
+    try {
+      String artworkId = const Uuid().v4();
+
+      // Upload image to Firebase Storage
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('artwork_images/$artworkId.jpg');
+      await storageRef.putFile(_image!);
+      final imageUrl = await storageRef.getDownloadURL();
+
+      // Prepare artwork data
+      final artworkData = {
+        "id": artworkId,
+        "artistId": user.uid,
+        "title": titleController.text.trim(),
+        "description": descriptionController.text.trim(),
+        "category": categoryController.text.trim(),
+        "year": yearController.text.trim(),
+        "price": priceController.text.trim(),
+        "imageUrl": imageUrl,
+        "timestamp": DateTime.now().millisecondsSinceEpoch
+      };
+
+      // Save to Firebase Realtime Database
+      final dbRef = FirebaseDatabase.instance.ref('artworks/$artworkId');
+      await dbRef.set(artworkData);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Artwork uploaded successfully')),
+      );
+
+      // Reset form
+      setState(() {
+        _image = null;
+        titleController.clear();
+        descriptionController.clear();
+        categoryController.clear();
+        yearController.clear();
+        priceController.clear();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: $e')),
+      );
+    } finally {
+      setState(() => _isUploading = false);
+    }
   }
 
   @override
@@ -64,7 +124,10 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
               child: Container(
                 height: 200,
                 width: double.infinity,
-                color: Colors.grey[300],
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  border: Border.all(color: Colors.grey),
+                ),
                 child: _image != null
                     ? Image.file(_image!, fit: BoxFit.cover)
                     : const Center(child: Text('Tap to select image')),
@@ -72,19 +135,21 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
             ),
             const SizedBox(height: 20),
             buildTextField("Title", titleController),
-            buildTextField("Description", descriptionController),
+            buildTextField("Description", descriptionController, maxLines: 3),
             buildTextField("Category", categoryController),
             buildTextField("Year Created", yearController, keyboardType: TextInputType.number),
             buildTextField("Price", priceController, keyboardType: TextInputType.number),
             const SizedBox(height: 30),
-            SizedBox(
+            _isUploading
+                ? const CircularProgressIndicator()
+                : SizedBox(
               width: 200,
               height: 50,
               child: ElevatedButton(
                 onPressed: saveArtwork,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white60,
-                  shape: const RoundedRectangleBorder(), // Rectangular
+                  shape: const RoundedRectangleBorder(),
                 ),
                 child: const Text(
                   'Save',
@@ -92,7 +157,6 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
                 ),
               ),
             ),
-
           ],
         ),
       ),
@@ -115,4 +179,3 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
     );
   }
 }
-
