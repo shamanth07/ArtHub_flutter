@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path; // prefix added here
 
 class CreateEventPage extends StatefulWidget {
   const CreateEventPage({super.key});
@@ -21,18 +22,11 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
   DateTime? selectedDate;
   File? _pickedImage;
+  bool isUploading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    Firebase.initializeApp();
-  }
-
-  // Method to pick image from gallery
   Future<void> pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
-
     if (picked != null) {
       setState(() {
         _pickedImage = File(picked.path);
@@ -40,7 +34,19 @@ class _CreateEventPageState extends State<CreateEventPage> {
     }
   }
 
-  // Method to create event
+  Future<String?> uploadImage(File image) async {
+    try {
+      final fileName = path.basename(image.path);  // updated usage here
+      final storageRef =
+      FirebaseStorage.instance.ref().child('event_banners/$fileName');
+      await storageRef.putFile(image);
+      return await storageRef.getDownloadURL();
+    } catch (e) {
+      print("Upload Error: $e");
+      return null;
+    }
+  }
+
   void createEvent() async {
     if (titleController.text.isEmpty ||
         descriptionController.text.isEmpty ||
@@ -48,16 +54,27 @@ class _CreateEventPageState extends State<CreateEventPage> {
         timeController.text.isEmpty ||
         maxVisitorsController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please fill all required fields")),
+        const SnackBar(content: Text("Please fill all required fields")),
       );
       return;
+    }
+
+    setState(() {
+      isUploading = true;
+    });
+
+    String imageUrl = "https://your-default-banner-url.jpg";
+    if (_pickedImage != null) {
+      final uploadedUrl = await uploadImage(_pickedImage!);
+      if (uploadedUrl != null) {
+        imageUrl = uploadedUrl;
+      }
     }
 
     final ref = FirebaseDatabase.instance.ref("events");
     final newEventRef = ref.push();
 
     final int maxArtists = int.tryParse(maxVisitorsController.text) ?? 0;
-
     final DateTime date = selectedDate ??
         DateTime.tryParse(dateController.text) ??
         DateTime.now();
@@ -69,26 +86,27 @@ class _CreateEventPageState extends State<CreateEventPage> {
       "eventDate": date.millisecondsSinceEpoch,
       "time": timeController.text,
       "maxArtists": maxArtists,
-      "bannerImageUrl": _pickedImage != null
-          ? _pickedImage!.path
-          : "https://your-default-banner-url.jpg",
+      "bannerImageUrl": imageUrl,
+      "location": locationController.text,
     };
 
     await newEventRef.set(eventData);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Event created successfully")),
+      const SnackBar(content: Text("Event created successfully")),
     );
 
-    // Optionally clear form
+    // Clear form
     titleController.clear();
     descriptionController.clear();
     dateController.clear();
     timeController.clear();
     maxVisitorsController.clear();
     locationController.clear();
+
     setState(() {
       _pickedImage = null;
+      isUploading = false;
     });
   }
 
@@ -96,21 +114,20 @@ class _CreateEventPageState extends State<CreateEventPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Create Event"),
+        title: const Text("Create Event"),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Banner image (either picked or placeholder)
             GestureDetector(
-              onTap: pickImage, // Open gallery on tap
+              onTap: pickImage,
               child: Container(
                 height: 180,
                 width: double.infinity,
@@ -119,54 +136,52 @@ class _CreateEventPageState extends State<CreateEventPage> {
                   image: DecorationImage(
                     image: _pickedImage != null
                         ? FileImage(_pickedImage!)
-                        : AssetImage('assets/images/art_placeholder.jpg')
+                        : const AssetImage('assets/images/art_placeholder.jpg')
                     as ImageProvider,
                     fit: BoxFit.cover,
                   ),
                 ),
-                child: Align(
+                child: const Align(
                   alignment: Alignment.topRight,
                   child: Padding(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: EdgeInsets.all(8.0),
                     child: Icon(Icons.edit, color: Colors.white),
                   ),
                 ),
               ),
             ),
-            SizedBox(height: 16),
-
+            const SizedBox(height: 16),
             TextField(
               controller: titleController,
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              decoration: InputDecoration(
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              decoration: const InputDecoration(
                 hintText: "Enter Title",
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               ),
             ),
-            SizedBox(height: 10),
-
+            const SizedBox(height: 10),
             TextField(
               controller: descriptionController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: "Description",
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               ),
             ),
-            SizedBox(height: 10),
-
+            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: dateController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: "Date",
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                     ),
                     onTap: () async {
+                      FocusScope.of(context).requestFocus(FocusNode());
                       final picked = await showDatePicker(
                         context: context,
                         initialDate: DateTime.now(),
@@ -182,16 +197,17 @@ class _CreateEventPageState extends State<CreateEventPage> {
                     readOnly: true,
                   ),
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Expanded(
                   child: TextField(
                     controller: timeController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: "Time",
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                     ),
                     onTap: () async {
+                      FocusScope.of(context).requestFocus(FocusNode());
                       final picked = await showTimePicker(
                         context: context,
                         initialTime: TimeOfDay.now(),
@@ -205,73 +221,67 @@ class _CreateEventPageState extends State<CreateEventPage> {
                 ),
               ],
             ),
-            SizedBox(height: 10),
-
+            const SizedBox(height: 10),
             Container(
               height: 150,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.lightGreen.shade50,
-                image: DecorationImage(
+                image: const DecorationImage(
                   image: AssetImage('assets/images/map_placeholder.jpg'),
                   fit: BoxFit.cover,
                 ),
               ),
-
-              child: Center(child: Icon(Icons.location_pin, size: 40)),
+              child: const Center(child: Icon(Icons.location_pin, size: 40)),
             ),
-            SizedBox(height: 10),
-
+            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: locationController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: "Enter Event Location",
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-
                     ),
                   ),
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: () {
                     print("Searching location: ${locationController.text}");
                   },
-
-                  child: Text("Search"),
+                  child: const Text("Search"),
                 ),
               ],
             ),
-            SizedBox(height: 10),
-
+            const SizedBox(height: 10),
             TextField(
               controller: maxVisitorsController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: "Maximum Artists Allowed",
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               ),
               keyboardType: TextInputType.number,
             ),
-            SizedBox(height: 20),
-
+            const SizedBox(height: 10),
             Center(
-              child: SizedBox(
+              child: isUploading
+                  ? const CircularProgressIndicator()
+                  : SizedBox(
                 width: 160,
                 child: ElevatedButton(
                   onPressed: createEvent,
                   style: ElevatedButton.styleFrom(
-
                     backgroundColor: Colors.grey[300],
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.zero,
                     ),
                   ),
-                  child: Text("Create"),
+                  child: const Text("Create"),
                 ),
               ),
             ),
