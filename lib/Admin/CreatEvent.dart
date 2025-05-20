@@ -4,7 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path; // prefix added here
-
+import 'package:flutter/services.dart';
 class CreateEventPage extends StatefulWidget {
   const CreateEventPage({super.key});
 
@@ -265,6 +265,9 @@ class _CreateEventPageState extends State<CreateEventPage> {
                 contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               ),
               keyboardType: TextInputType.number,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly,
+              ],
             ),
             const SizedBox(height: 10),
             Center(
