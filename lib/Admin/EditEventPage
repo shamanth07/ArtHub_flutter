@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
-
+import 'package:flutter/services.dart';
 class EditEventPage extends StatefulWidget {
   final String eventKey;
   final Map<dynamic, dynamic> eventData;
@@ -249,6 +249,20 @@ class _EditEventPageState extends State<EditEventPage> {
               ],
             ),
             const SizedBox(height: 10),
+            Container(
+              height: 150,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.lightGreen.shade50,
+                image: DecorationImage(
+                  image: AssetImage('assets/images/map_placeholder.jpg'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+
+              child: Center(child: Icon(Icons.location_pin, size: 40)),
+            ),
+            SizedBox(height: 10),
 
             TextField(
               controller: locationController,
@@ -268,6 +282,9 @@ class _EditEventPageState extends State<EditEventPage> {
                 contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               ),
               keyboardType: TextInputType.number,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly,
+              ],
             ),
             const SizedBox(height: 20),
 
@@ -293,4 +310,3 @@ class _EditEventPageState extends State<EditEventPage> {
     );
   }
 }
-
