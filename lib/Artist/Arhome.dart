@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:newarthub/Artist/uploadartwork.dart';
-
+import 'package:newarthub/Artist/ArSignUp.dart';
 class ArtistHomePage extends StatefulWidget {
   const ArtistHomePage({Key? key}) : super(key: key);
 
@@ -67,7 +67,7 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
 
             // Logo aligned to center-left
             const Padding(
-              padding: EdgeInsets.only(left: 20),
+              padding: EdgeInsets.only(left: 20,top: 10),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Image(
@@ -79,7 +79,7 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
 
             // Profile icon and email aligned to top-center
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(),
               child: Column(
                 children: [
                   const Icon(Icons.account_circle, size: 80),
@@ -149,36 +149,38 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
                   ),
                   const Divider(),
                   ListTile(
-                    leading: const Icon(Icons.logout, color: Colors.black),
-                    title: const Text('Logout', style: TextStyle(color: Colors.black)),
+                    leading: const Icon(Icons.logout, color: Colors.red),
+                    title: const Text("Logout", style: TextStyle(color: Colors.red)),
                     onTap: () {
                       showDialog(
                         context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: const Text("Confirm Logout"),
-                            content: const Text("Are you sure you want to logout?"),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(context).pop(), // Close the dialog
-                                child: const Text("Cancel"),
-                              ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                onPressed: () async {
-                                  Navigator.of(context).pop(); // Close dialog
-                                  await FirebaseAuth.instance.signOut();
-                                  Navigator.pushReplacementNamed(context, "/login");
-                                },
-                                child: const Text("Yes", style: TextStyle(color: Colors.white)),
-                              ),
-
-                            ],
-                          );
-                        },
+                        builder: (context) => AlertDialog(
+                          title: const Text('Confirm Logout'),
+                          content: const Text('Are you sure you want to logout?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(), // dismiss dialog
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                Navigator.of(context).pop(); // dismiss dialog
+                                await FirebaseAuth.instance.signOut(); // <- Logout
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const ArSigninPage()),
+                                );
+                              },
+                              child: const Text('Logout', style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                        ),
                       );
                     },
                   ),
+
+
+
                   const Divider(),
                 ],
               ),
