@@ -1,1 +1,128 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'dart:core';
+class ArtistProfilePage extends StatefulWidget {
+  const ArtistProfilePage({super.key});
+
+  @override
+  State<ArtistProfilePage> createState() => _ArtistProfilePageState();
+}
+
+class _ArtistProfilePageState extends State<ArtistProfilePage> {
+  final database = FirebaseDatabase.instance.ref();
+  final user = FirebaseAuth.instance.currentUser;
+
+  String name = "";
+  String email = "";
+  String bio = "";
+  String website = "";
+  String instagram = "";
+
+  @override
+  void initState() {
+    super.initState();
+    fetchProfileData();
+  }
+
+  void fetchProfileData() async {
+    final snapshot = await database.child('artists/${user!.uid}').get();
+
+    if (snapshot.exists) {
+      final data = snapshot.value as Map;
+      setState(() {
+        name = data['name'] ?? '';
+        email = data['email'] ?? '';
+        bio = data['bio'] ?? '';
+        website = data['socialLinks']?['website'] ?? '';
+        instagram = data['socialLinks']?['instagram'] ?? '';
+      });
+    } else {
+      // Create artist data if not exists
+      final newArtist = {
+        'name': user!.displayName ?? '',
+        'email': user!.email ?? '',
+        'role': 'artist',
+        'bio': '',
+        'socialLinks': {
+          'website': '',
+          'instagram': ''
+        }
+      };
+
+      await database.child('artists/${user!.uid}').set(newArtist);
+
+      setState(() {
+        name = newArtist['name'] as String;
+        email = newArtist['email'] as String;
+        bio = '';
+        website = '';
+        instagram = '';
+      });
+
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Artist Profile"),
+        centerTitle: true,
+        leading: const BackButton(),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ListView(
+          children: [
+            const Icon(Icons.account_circle, size: 100),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("$name (Artist)", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                ElevatedButton(
+                  onPressed: () {
+                    // Navigate to edit screen
+                  },
+                  child: const Text("Edit Profile"),
+                ),
+              ],
+            ),
+            const Divider(height: 30),
+
+            const Text("Email", style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(email, style: const TextStyle(color: Colors.grey)),
+            const Divider(height: 30),
+
+            const Text("Bio", style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(bio),
+            const Divider(height: 30),
+
+            const Text("Social Links", style: TextStyle(fontWeight: FontWeight.bold)),
+            ListTile(
+              leading: const Icon(Icons.language),
+              title: const Text("Website"),
+              subtitle: Text(website),
+              onTap: () {
+                // Open website
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text("Instagram"),
+              subtitle: Text(instagram),
+              onTap: () {
+                // Open Instagram
+              },
+            ),
+
+            const Divider(height: 30),
+            const Text("Change Password", style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
