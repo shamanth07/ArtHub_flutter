@@ -1,3 +1,4 @@
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -5,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/services.dart';
 
 class UploadArtworkPage extends StatefulWidget {
   const UploadArtworkPage({super.key});
@@ -65,22 +67,26 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
       await storageRef.putFile(_image!);
       final imageUrl = await storageRef.getDownloadURL();
 
-      // Prepare artwork data
+      // Prepare artwork data, ensure all fields are strings
       final artworkData = {
         "id": artworkId,
         "artistId": user.uid,
         "title": titleController.text.trim(),
         "description": descriptionController.text.trim(),
         "category": categoryController.text.trim(),
-        "year": yearController.text.trim(),
-        "price": priceController.text.trim(),
+        "year": yearController.text.trim(),   // stored as string
+        "price": priceController.text.trim(), // stored as string
         "imageUrl": imageUrl,
         "timestamp": DateTime.now().millisecondsSinceEpoch
       };
 
-      // Save to Firebase Realtime Database
-      final dbRef = FirebaseDatabase.instance.ref('artworks/$artworkId');
-      await dbRef.set(artworkData);
+      final db = FirebaseDatabase.instance.ref();
+
+      // Save artwork in global artworks node AND under the artist's artworks subnode
+      await db.update({
+        'artworks/$artworkId': artworkData,
+        'artists/${user.uid}/artworks/$artworkId': artworkData,
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Artwork uploaded successfully')),
@@ -137,8 +143,10 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
             buildTextField("Title", titleController),
             buildTextField("Description", descriptionController, maxLines: 3),
             buildTextField("Category", categoryController),
-            buildTextField("Year Created", yearController, keyboardType: TextInputType.number),
-            buildTextField("Price", priceController, keyboardType: TextInputType.number),
+            buildTextField("Year Created", yearController,
+                keyboardType: TextInputType.number),
+            buildTextField("Price", priceController,
+                keyboardType: TextInputType.number),
             const SizedBox(height: 30),
             _isUploading
                 ? const CircularProgressIndicator()
@@ -175,7 +183,12 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
           labelText: label,
           border: const OutlineInputBorder(),
         ),
+        // Optional: limit input to digits only for year and price
+        inputFormatters: (label == "Year Created" || label == "Price")
+            ? [FilteringTextInputFormatter.digitsOnly]
+            : null,
       ),
     );
   }
 }
+
