@@ -1,10 +1,17 @@
+
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as path; // prefix added here
+import 'package:path/path.dart' as path;
 import 'package:flutter/services.dart';
+
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:geocoding/geocoding.dart';
+
 class CreateEventPage extends StatefulWidget {
   const CreateEventPage({super.key});
 
@@ -24,6 +31,16 @@ class _CreateEventPageState extends State<CreateEventPage> {
   File? _pickedImage;
   bool isUploading = false;
 
+  // For map and location search
+  late MapController _mapController;
+  LatLng _currentLatLng = LatLng(20.5937, 78.9629); // Default center India
+
+  @override
+  void initState() {
+    super.initState();
+    _mapController = MapController();
+  }
+
   Future<void> pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -36,7 +53,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
   Future<String?> uploadImage(File image) async {
     try {
-      final fileName = path.basename(image.path);  // updated usage here
+      final fileName = path.basename(image.path);
       final storageRef =
       FirebaseStorage.instance.ref().child('event_banners/$fileName');
       await storageRef.putFile(image);
@@ -44,6 +61,30 @@ class _CreateEventPageState extends State<CreateEventPage> {
     } catch (e) {
       print("Upload Error: $e");
       return null;
+    }
+  }
+
+  Future<void> _handleSearch() async {
+    String query = locationController.text.trim();
+    if (query.isEmpty) return;
+
+    try {
+      List<Location> locations = await locationFromAddress(query);
+      if (locations.isNotEmpty) {
+        final loc = locations.first;
+        final newLatLng = LatLng(loc.latitude, loc.longitude);
+
+        setState(() {
+          _currentLatLng = newLatLng;
+        });
+
+        _mapController.move(newLatLng, 12);
+      }
+    } catch (e) {
+      debugPrint("Error during geocoding: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Place not found")),
+      );
     }
   }
 
@@ -88,6 +129,8 @@ class _CreateEventPageState extends State<CreateEventPage> {
       "maxArtists": maxArtists,
       "bannerImageUrl": imageUrl,
       "location": locationController.text,
+      "latitude": _currentLatLng.latitude,
+      "longitude": _currentLatLng.longitude,
     };
 
     await newEventRef.set(eventData);
@@ -107,6 +150,8 @@ class _CreateEventPageState extends State<CreateEventPage> {
     setState(() {
       _pickedImage = null;
       isUploading = false;
+      _currentLatLng = LatLng(20.5937, 78.9629); // Reset map center
+      _mapController.move(_currentLatLng, 5);
     });
   }
 
@@ -150,26 +195,29 @@ class _CreateEventPageState extends State<CreateEventPage> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             TextField(
               controller: titleController,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style:
+              const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               decoration: const InputDecoration(
                 hintText: "Enter Title",
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                contentPadding:
+                EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             TextField(
               controller: descriptionController,
               decoration: const InputDecoration(
                 hintText: "Description",
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                contentPadding:
+                EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
@@ -178,7 +226,8 @@ class _CreateEventPageState extends State<CreateEventPage> {
                     decoration: const InputDecoration(
                       hintText: "Date",
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                      contentPadding:
+                      EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                     ),
                     onTap: () async {
                       FocusScope.of(context).requestFocus(FocusNode());
@@ -204,7 +253,8 @@ class _CreateEventPageState extends State<CreateEventPage> {
                     decoration: const InputDecoration(
                       hintText: "Time",
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                      contentPadding:
+                      EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                     ),
                     onTap: () async {
                       FocusScope.of(context).requestFocus(FocusNode());
@@ -221,55 +271,79 @@ class _CreateEventPageState extends State<CreateEventPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            Container(
-              height: 150,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.lightGreen.shade50,
-                image: const DecorationImage(
-                  image: AssetImage('assets/images/map_placeholder.jpg'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-              child: const Center(child: Icon(Icons.location_pin, size: 40)),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: locationController,
-                    decoration: const InputDecoration(
-                      hintText: "Enter Event Location",
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            const SizedBox(height: 8),
+
+            // Location input and search button in one row
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: locationController,
+                      decoration: const InputDecoration(
+                        hintText: "Enter Location",
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                        EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      ),
+                      onSubmitted: (_) => _handleSearch(),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    print("Searching location: ${locationController.text}");
-                  },
-                  child: const Text("Search"),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _handleSearch,
+                    child: const Icon(Icons.search),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 10),
+
+            SizedBox(
+              height: 180,
+              child: FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  center: _currentLatLng,
+                  zoom: 5,
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    subdomains: ['a', 'b', 'c'],
+                    userAgentPackageName: 'com.example.app',
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: _currentLatLng,
+                        width: 40,
+                        height: 40,
+                        builder: (context) =>
+                        const Icon(Icons.location_pin, color: Colors.red, size: 40),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 8),
             TextField(
               controller: maxVisitorsController,
               decoration: const InputDecoration(
                 hintText: "Maximum Artists Allowed",
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                contentPadding:
+                EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               ),
               keyboardType: TextInputType.number,
               inputFormatters: <TextInputFormatter>[
                 FilteringTextInputFormatter.digitsOnly,
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Center(
               child: isUploading
                   ? const CircularProgressIndicator()
@@ -281,10 +355,10 @@ class _CreateEventPageState extends State<CreateEventPage> {
                     backgroundColor: Colors.grey[300],
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.zero,
+                      borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  child: const Text("Create"),
+                  child: const Text("Create Event"),
                 ),
               ),
             ),
