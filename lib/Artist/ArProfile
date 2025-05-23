@@ -2,16 +2,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'uploadartwork.dart'; // Make sure this import path is correct for UploadArtworkPage
+import 'package:url_launcher/url_launcher.dart';
+import 'uploadartwork.dart';
 import 'package:newarthub/Artist/ArChangePassword.dart';
 import 'package:newarthub/Artist/EditProfile.dart';
+
 class ArtistProfilePage extends StatefulWidget {
   const ArtistProfilePage({super.key});
 
   @override
   State<ArtistProfilePage> createState() => _ArtistProfilePageState();
 }
-
 
 class _ArtistProfilePageState extends State<ArtistProfilePage> {
   final database = FirebaseDatabase.instance.ref();
@@ -93,7 +94,25 @@ class _ArtistProfilePageState extends State<ArtistProfilePage> {
     }
   }
 
-  void refreshArtworks() => fetchArtistArtworks();
+  Future<void> _launchURL(String url) async {
+    if (url.isEmpty) {
+      print("URL is empty");
+      return;
+    }
+
+    final Uri uri = Uri.parse(url.startsWith('http') ? url : 'https://$url');
+
+    if (await canLaunchUrl(uri)) {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      print("Launched: $launched");
+    } else {
+      print("Could NOT launch: $uri");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Could not launch URL")),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +124,11 @@ class _ArtistProfilePageState extends State<ArtistProfilePage> {
         : const CircleAvatar(
       radius: 50,
       child: Icon(Icons.account_circle, size: 60),
+    );
+
+    const linkStyle = TextStyle(
+      color: Colors.blue,
+      decoration: TextDecoration.underline,
     );
 
     return Scaffold(
@@ -132,9 +156,9 @@ class _ArtistProfilePageState extends State<ArtistProfilePage> {
                       context,
                       MaterialPageRoute(builder: (_) => const EditArtistProfilePage()),
                     );
-                    fetchProfileData(); // Refresh data after editing
+                    fetchProfileData();
                   },
-                  child: const Text("Edit Profile"),
+                  child: const Text("Edit Profile", style: TextStyle(color: Colors.black)),
                 ),
               ],
             ),
@@ -146,16 +170,32 @@ class _ArtistProfilePageState extends State<ArtistProfilePage> {
             Text(bio),
             const Divider(height: 30),
             const Text("Social Links", style: TextStyle(fontWeight: FontWeight.bold)),
+
+            // Website Link
             ListTile(
               leading: const Icon(Icons.language),
               title: const Text("Website"),
-              subtitle: Text(website),
+              subtitle: Text(
+                website.isNotEmpty ? website : "Not provided",
+                style: website.isNotEmpty ? linkStyle : const TextStyle(color: Colors.grey),
+              ),
+              onTap: website.isNotEmpty ? () => _launchURL(website) : null,
             ),
+
+
+
+
+            // Instagram Link
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text("Instagram"),
-              subtitle: Text(instagram),
+              subtitle: Text(
+                instagram.isNotEmpty ? instagram : "Not provided",
+                style: instagram.isNotEmpty ? linkStyle : const TextStyle(color: Colors.grey),
+              ),
+              onTap: instagram.isNotEmpty ? () => _launchURL(instagram) : null,
             ),
+
             const Divider(height: 30),
             const SizedBox(height: 30),
             GestureDetector(
@@ -181,5 +221,3 @@ class _ArtistProfilePageState extends State<ArtistProfilePage> {
     );
   }
 }
-
-
