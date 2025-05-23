@@ -1,9 +1,17 @@
+
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
+
+// For flutter_map and latlong2:
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+
+// For geocoding:
+import 'package:geocoding/geocoding.dart';
+
 class EditEventPage extends StatefulWidget {
   final String eventKey;
   final Map<dynamic, dynamic> eventData;
@@ -18,8 +26,6 @@ class EditEventPage extends StatefulWidget {
   _EditEventPageState createState() => _EditEventPageState();
 }
 
-
-
 class _EditEventPageState extends State<EditEventPage> {
   late TextEditingController titleController;
   late TextEditingController descriptionController;
@@ -31,14 +37,21 @@ class _EditEventPageState extends State<EditEventPage> {
   DateTime? selectedDate;
   File? _pickedImage;
 
-  // For demo, we assume bannerImageUrl is a string URL or local path (no Firebase Storage upload included)
   String? bannerImageUrl;
+
+  // Map-related fields
+  LatLng? selectedLatLng; // Coordinates of searched location
+  late MapController mapController;
 
   @override
   void initState() {
     super.initState();
     _initializeControllers();
     bannerImageUrl = widget.eventData['bannerImageUrl'];
+    mapController = MapController();
+
+    // Optional: try to initialize map location from existing event location string
+    _initializeMapLocationFromAddress();
   }
 
   void _initializeControllers() {
@@ -61,6 +74,27 @@ class _EditEventPageState extends State<EditEventPage> {
     locationController = TextEditingController(text: widget.eventData['location'] ?? '');
   }
 
+  Future<void> _initializeMapLocationFromAddress() async {
+    final address = widget.eventData['location'];
+    if (address != null && address is String && address.isNotEmpty) {
+      try {
+        List<Location> locations = await locationFromAddress(address);
+        if (locations.isNotEmpty) {
+          final loc = locations.first;
+          setState(() {
+            selectedLatLng = LatLng(loc.latitude, loc.longitude);
+          });
+          // After the first frame, move the map controller
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            mapController.move(selectedLatLng!, 13);
+          });
+        }
+      } catch (e) {
+        // Ignore errors here or show a debug print if you want
+      }
+    }
+  }
+
   Future<void> pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -68,8 +102,7 @@ class _EditEventPageState extends State<EditEventPage> {
     if (picked != null) {
       setState(() {
         _pickedImage = File(picked.path);
-        // When picking new image, update bannerImageUrl to local file path temporarily
-        bannerImageUrl = picked.path;
+        bannerImageUrl = picked.path; // Use local path temporarily
       });
     }
   }
@@ -92,7 +125,6 @@ class _EditEventPageState extends State<EditEventPage> {
         DateTime.tryParse(dateController.text) ??
         DateTime.now();
 
-    // Update event data map
     final eventData = {
       "eventId": widget.eventKey,
       "title": titleController.text,
@@ -112,7 +144,7 @@ class _EditEventPageState extends State<EditEventPage> {
         const SnackBar(content: Text("Event updated successfully")),
       );
 
-      Navigator.pop(context, true); // Return true to indicate success
+      Navigator.pop(context, true);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to update event: $e")),
@@ -249,58 +281,124 @@ class _EditEventPageState extends State<EditEventPage> {
               ],
             ),
             const SizedBox(height: 10),
-            Container(
-              height: 150,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.lightGreen.shade50,
-                image: DecorationImage(
-                  image: AssetImage('assets/images/map_placeholder.jpg'),
-                  fit: BoxFit.cover,
+
+            // Map + Search button
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 200,
+                  width: double.infinity,
+                  child: FlutterMap(
+                    mapController: mapController,
+                    options: MapOptions(
+                      center: selectedLatLng ?? LatLng(51.5, -0.09),
+                      zoom: 13,
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        subdomains: const ['a', 'b', 'c'],
+                      ),
+                      MarkerLayer(
+                        markers: [
+                          if (selectedLatLng != null)
+                            Marker(
+                              width: 80,
+                              height: 80,
+                              point: selectedLatLng!,
+                              builder: (ctx) =>
+                              const Icon(Icons.location_pin, color: Colors.red, size: 40),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(height: 8),
 
-              child: Center(child: Icon(Icons.location_pin, size: 40)),
-            ),
-            SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: TextField(
+                        controller: locationController,
+                        decoration: const InputDecoration(
+                          hintText: "Event Location",
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    SizedBox(
+                      height: 48,
+                      width: 100, // Reduced width to make it smaller
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final query = locationController.text.trim();
+                          if (query.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Please enter a location to search.")),
+                            );
+                            return;
+                          }
 
-            TextField(
-              controller: locationController,
-              decoration: const InputDecoration(
-                hintText: "Event Location",
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-              ),
+                          try {
+                            List<Location> locations = await locationFromAddress(query);
+                            if (locations.isNotEmpty) {
+                              final loc = locations.first;
+                              setState(() {
+                                selectedLatLng = LatLng(loc.latitude, loc.longitude);
+                                mapController.move(selectedLatLng!, 15);
+                              });
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Location not found.")),
+                              );
+                            }
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Error searching location: $e")),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.search),
+                        label: const Text("Search"),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(36), // Button height
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
+
             const SizedBox(height: 10),
 
             TextField(
               controller: maxArtistsController,
               decoration: const InputDecoration(
-                hintText: "Maximum Artists Allowed",
+                hintText: "Maximum Artists",
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               ),
               keyboardType: TextInputType.number,
-              inputFormatters: <TextInputFormatter>[
-                FilteringTextInputFormatter.digitsOnly,
-              ],
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             ),
+
             const SizedBox(height: 20),
 
-            Center(
-              child: SizedBox(
-                width: 160,
-                child: ElevatedButton(
-                  onPressed: updateEvent,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[300],
-                    foregroundColor: Colors.black,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.zero,
-                    ),
-                  ),
-                  child: const Text("Update"),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: updateEvent,
+                child: const Text(
+                  "Update Event",
+                  style: TextStyle(fontSize: 18),
                 ),
               ),
             ),
