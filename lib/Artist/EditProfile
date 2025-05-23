@@ -153,4 +153,3 @@ class _EditArtistProfilePageState extends State<EditArtistProfilePage> {
     );
   }
 }
-
