@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';  // add firebase_database dependency
 import 'package:newarthub/Visitor/VProfile.dart';
 import 'package:newarthub/Visitor/SignUp.dart';
-
+import 'package:newarthub/Visitor/VSettings.dart';
 class VisitorHomePage extends StatefulWidget {
   const VisitorHomePage({super.key});
 
@@ -163,8 +163,10 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
                     leading: const Icon(Icons.settings),
                     title: const Text('Settings'),
                     onTap: () {
-                      Navigator.pop(context);
-                      Navigator.pushNamed(context, '/VisitorSettings');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SettingsPage()),
+                      );
                     },
                   ),
                   const SizedBox(height: 20),
@@ -390,3 +392,4 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
     }
   }
 }
+
