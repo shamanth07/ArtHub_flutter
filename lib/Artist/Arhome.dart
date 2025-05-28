@@ -4,7 +4,9 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:newarthub/Artist/uploadartwork.dart';
 import 'package:newarthub/Artist/ArSignUp.dart';
 import 'package:newarthub/Artist/ArProfile.dart';
-
+import 'package:newarthub/Artist/EditArtwork.dart';
+import 'package:newarthub/Artist/ApplyEvents.dart';
+import 'package:newarthub/Artist/ArSettings.dart';
 class ArtistHomePage extends StatefulWidget {
   const ArtistHomePage({Key? key}) : super(key: key);
 
@@ -160,69 +162,88 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
   }
 
   Widget buildArtworkCard(Map<String, dynamic> artwork) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: Colors.black87,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (artwork['imageUrl'] != null)
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(8),
-                topRight: Radius.circular(8),
-              ),
-              child: Image.network(
-                artwork['imageUrl'],
-                height: 180,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+    return GestureDetector(
+      onTap: () async {
+        final shouldRefresh = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EditArtworkPage(
+              artworkId: artwork['artworkId'],
+              title: artwork['title'],
+              imageUrl: artwork['imageUrl'],
             ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  artwork['title'] ?? 'Untitled',
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        );
+
+        if (shouldRefresh == true) {
+          fetchArtworksFromFirebase(); // Refresh on return
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (artwork['imageUrl'] != null)
+              ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(8),
+                  topRight: Radius.circular(8),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  artwork['artist'] ?? 'Unknown',
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                child: Image.network(
+                  artwork['imageUrl'],
+                  height: 180,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.favorite, color: Colors.white54, size: 18),
-                        const SizedBox(width: 4),
-                        Text(
-                          (artwork['likes'] ?? 0).toString(),
-                          style: const TextStyle(color: Colors.white54),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => confirmDelete(context, artwork['artworkId']),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          )
-        ],
+              ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    artwork['title'] ?? 'Untitled',
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    artwork['artist'] ?? 'Unknown',
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.favorite, color: Colors.white54, size: 18),
+                          const SizedBox(width: 4),
+                          Text(
+                            (artwork['likes'] ?? 0).toString(),
+                            style: const TextStyle(color: Colors.white54),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => confirmDelete(context, artwork['artworkId']),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
+
 
   Widget buildDrawer(BuildContext context) {
     return Drawer(
@@ -274,7 +295,7 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
                 ListTile(
                   leading: const Icon(Icons.calendar_today),
                   title: const Text('Apply For Event'),
-                  onTap: () => Navigator.pushNamed(context, '/applyEvent'),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ViewAllEventsPage())),
                 ),
                 const Divider(),
                 ListTile(
@@ -286,7 +307,7 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
                 ListTile(
                   leading: const Icon(Icons.settings),
                   title: const Text('Settings'),
-                  onTap: () => Navigator.pushNamed(context, '/artistSettings'),
+                  onTap: () => Navigator.push(context,  MaterialPageRoute(builder: (_) => const SettingsPage())),
                 ),
                 const Divider(),
                 ListTile(
@@ -328,3 +349,4 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
     );
   }
 }
+
