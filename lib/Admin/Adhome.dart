@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 import 'package:newarthub/Admin/CreatEvent.dart';
 import 'package:newarthub/Admin/AdLogin.dart';
 import 'package:newarthub/Admin/EditEvent.dart'; // Import the EditEventPage
-
+import 'package:newarthub/Admin/AdProfile.dart';
+import 'package:newarthub/Admin/invitations.dart';
+import 'package:newarthub/Admin/Settings.dart';
 class AdminEventsPage extends StatefulWidget {
   const AdminEventsPage({super.key});
 
@@ -122,15 +124,31 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
             const SizedBox(height: 30),
 
             // Menu Items
-            drawerItem(Icons.person, "Profile", () {}),
+            drawerItem(Icons.person, "Profile", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AdminProfilePage()),
+              );
+            }),
             drawerItem(Icons.calendar_today, "Create Event", () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const CreateEventPage()),
               );
             }),
+            drawerItem(Icons.calendar_today, "Invitations", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AdminInvitationsPage()),
+              );
+            }),
             drawerItem(Icons.insert_drive_file, "Reports", () {}),
-            drawerItem(Icons.settings, "Settings", () {}),
+            drawerItem(Icons.settings, "Settings", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsPage()),
+              );
+            }),
 
             // Logout button just below Settings
             drawerItem(
