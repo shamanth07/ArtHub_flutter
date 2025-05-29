@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';  // add firebase_database dependency
+import 'package:firebase_database/firebase_database.dart';
 import 'package:newarthub/Visitor/VProfile.dart';
 import 'package:newarthub/Visitor/SignUp.dart';
 import 'package:newarthub/Visitor/VSettings.dart';
+
 class VisitorHomePage extends StatefulWidget {
   const VisitorHomePage({super.key});
 
@@ -19,8 +20,8 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
   List<Map<String, dynamic>> events = [];
   bool isLoading = true;
 
-  // To hold liked artworks by id locally for demo
   Set<String> likedArtworks = {};
+  final TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
@@ -37,7 +38,6 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
 
       if (artworksSnapshot.exists) {
         Map artistsMap = artworksSnapshot.value as Map;
-        // Each artist contains artworks, flatten them
         artistsMap.forEach((artistId, artistData) {
           if (artistData['artworks'] != null) {
             Map artworksMap = artistData['artworks'] as Map;
@@ -90,15 +90,28 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
   }
 
   void onCommentTap(String artworkId) {
-    // For now just show a simple snackbar. You can replace with real comment page.
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Comment tapped for artwork $artworkId')),
     );
   }
 
+  List<Map<String, dynamic>> getFilteredItems() {
+    String query = searchController.text.toLowerCase();
+    if (selectedCategory == 'Painting') {
+      return artworks
+          .where((art) => art['title'].toLowerCase().contains(query))
+          .toList();
+    } else {
+      return events
+          .where((event) => event['title'].toLowerCase().contains(query))
+          .toList();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final String? userEmail = FirebaseAuth.instance.currentUser?.email;
+    final filteredItems = getFilteredItems();
 
     return Scaffold(
       drawer: Drawer(
@@ -235,9 +248,7 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton(
-                  onPressed: () {
-                    // Add filter logic here if needed
-                  },
+                  onPressed: () {},
                   child: const Text("Filters"),
                 ),
                 DropdownButton<String>(
@@ -255,117 +266,131 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
-
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: 'Search ${selectedCategory == 'Painting' ? 'artworks' : 'events'}...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onChanged: (_) {
+                setState(() {}); // Triggers rebuild for filtering
+              },
+            ),
+          ),
+          const SizedBox(height: 10),
           Expanded(
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : selectedCategory == 'Painting'
-                ? artworks.isEmpty
-                ? const Center(child: Text('No artworks to display.'))
-                : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              itemCount: artworks.length,
-              itemBuilder: (context, index) {
-                final artwork = artworks[index];
-                final isLiked = likedArtworks.contains(artwork['id']);
-
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AspectRatio(
-                        aspectRatio: 1, // square image like Instagram
-                        child: artwork['imageUrl'] != ''
-                            ? Image.network(
-                          artwork['imageUrl'],
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                          const Center(child: Icon(Icons.broken_image)),
-                        )
-                            : const Center(child: Icon(Icons.image_not_supported)),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        child: Text(
-                          artwork['title'] ?? 'Untitled',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                isLiked ? Icons.favorite : Icons.favorite_border,
-                                color: isLiked ? Colors.red : Colors.grey,
-                              ),
-                              onPressed: () => toggleLike(artwork['id']),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.comment_outlined, color: Colors.grey),
-                              onPressed: () => onCommentTap(artwork['id']),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                : filteredItems.isEmpty
+                ? Center(
+              child: Text(
+                selectedCategory == 'Painting'
+                    ? 'No artworks to display.'
+                    : 'No events to display.',
+              ),
             )
-                : events.isEmpty
-                ? const Center(child: Text('No events to display.'))
                 : ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              itemCount: events.length,
+              itemCount: filteredItems.length,
               itemBuilder: (context, index) {
-                final event = events[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AspectRatio(
-                        aspectRatio: 3 / 2,
-                        child: event['bannerImageUrl'] != ''
-                            ? Image.network(
-                          event['bannerImageUrl'],
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                          const Center(child: Icon(Icons.broken_image)),
-                        )
-                            : const Center(child: Icon(Icons.image_not_supported)),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        child: Text(
-                          event['title'] ?? 'Untitled Event',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                final item = filteredItems[index];
+                if (selectedCategory == 'Painting') {
+                  final isLiked = likedArtworks.contains(item['id']);
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 1,
+                          child: item['imageUrl'] != ''
+                              ? Image.network(
+                            item['imageUrl'],
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                            const Center(child: Icon(Icons.broken_image)),
+                          )
+                              : const Center(child: Icon(Icons.image_not_supported)),
                         ),
-                      ),
-                      if (event['eventDate'] != null && event['eventDate'] != '')
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           child: Text(
-                            _formatEventDate(event['eventDate']),
-                            style: const TextStyle(color: Colors.grey),
+                            item['title'] ?? 'Untitled',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                         ),
-                      const SizedBox(height: 12),
-                    ],
-                  ),
-                );
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  isLiked ? Icons.favorite : Icons.favorite_border,
+                                  color: isLiked ? Colors.red : Colors.grey,
+                                ),
+                                onPressed: () => toggleLike(item['id']),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.comment_outlined, color: Colors.grey),
+                                onPressed: () => onCommentTap(item['id']),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 3 / 2,
+                          child: item['bannerImageUrl'] != ''
+                              ? Image.network(
+                            item['bannerImageUrl'],
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                            const Center(child: Icon(Icons.broken_image)),
+                          )
+                              : const Center(child: Icon(Icons.image_not_supported)),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          child: Text(
+                            item['title'] ?? 'Untitled Event',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ),
+                        if (item['eventDate'] != null && item['eventDate'] != '')
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              _formatEventDate(item['eventDate']),
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                        const SizedBox(height: 12),
+                      ],
+                    ),
+                  );
+                }
               },
             ),
           ),
@@ -376,7 +401,6 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
 
   String _formatEventDate(dynamic timestamp) {
     try {
-      // Assume eventDate is a timestamp in milliseconds
       int millis = 0;
       if (timestamp is int) {
         millis = timestamp;
@@ -384,7 +408,6 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
         millis = int.tryParse(timestamp) ?? 0;
       }
       if (millis == 0) return '';
-
       final date = DateTime.fromMillisecondsSinceEpoch(millis);
       return '${date.day}/${date.month}/${date.year}';
     } catch (e) {
@@ -392,4 +415,3 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
     }
   }
 }
-
