@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -19,11 +18,11 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
   File? _image;
   final picker = ImagePicker();
 
-  final TextEditingController titleController = TextEditingController();
-  final TextEditingController descriptionController = TextEditingController();
-  final TextEditingController categoryController = TextEditingController();
-  final TextEditingController yearController = TextEditingController();
-  final TextEditingController priceController = TextEditingController();
+  final titleController = TextEditingController();
+  final descriptionController = TextEditingController();
+  final categoryController = TextEditingController();
+  final yearController = TextEditingController();
+  final priceController = TextEditingController();
 
   bool _isUploading = false;
 
@@ -58,41 +57,40 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
     setState(() => _isUploading = true);
 
     try {
-      String artworkId = const Uuid().v4();
+      final artworkId = const Uuid().v4();
 
-      // Upload image to Firebase Storage
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('artwork_images/$artworkId.jpg');
+      final storageRef =
+      FirebaseStorage.instance.ref().child('artwork_images/$artworkId.jpg');
       await storageRef.putFile(_image!);
       final imageUrl = await storageRef.getDownloadURL();
 
-      // Prepare artwork data, ensure all fields are strings
       final artworkData = {
         "id": artworkId,
         "artistId": user.uid,
         "title": titleController.text.trim(),
         "description": descriptionController.text.trim(),
         "category": categoryController.text.trim(),
-        "year": yearController.text.trim(),   // stored as string
-        "price": priceController.text.trim(), // stored as string
+        "year": yearController.text.trim(),
+        "price": priceController.text.trim(),
         "imageUrl": imageUrl,
-        "timestamp": DateTime.now().millisecondsSinceEpoch
+        "timestamp": DateTime.now().millisecondsSinceEpoch,
+        "likes": 0, // initialize likes
       };
 
       final db = FirebaseDatabase.instance.ref();
 
-      // Save artwork in global artworks node AND under the artist's artworks subnode
       await db.update({
         'artworks/$artworkId': artworkData,
         'artists/${user.uid}/artworks/$artworkId': artworkData,
       });
 
+      // Initialize empty comments node
+      await db.child('artworks/$artworkId/comments').set({});
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Artwork uploaded successfully')),
       );
 
-      // Reset form
       setState(() {
         _image = null;
         titleController.clear();
@@ -183,7 +181,6 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
           labelText: label,
           border: const OutlineInputBorder(),
         ),
-        // Optional: limit input to digits only for year and price
         inputFormatters: (label == "Year Created" || label == "Price")
             ? [FilteringTextInputFormatter.digitsOnly]
             : null,
