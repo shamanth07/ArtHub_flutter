@@ -1,15 +1,10 @@
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
-
-// For flutter_map and latlong2:
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-
-// For geocoding:
 import 'package:geocoding/geocoding.dart';
 
 class EditEventPage extends StatefulWidget {
@@ -33,33 +28,27 @@ class _EditEventPageState extends State<EditEventPage> {
   late TextEditingController dateController;
   late TextEditingController timeController;
   late TextEditingController locationController;
+  late TextEditingController ticketPriceController;
 
   DateTime? selectedDate;
   File? _pickedImage;
-
   String? bannerImageUrl;
-
-  // Map-related fields
-  LatLng? selectedLatLng; // Coordinates of searched location
+  LatLng? selectedLatLng;
   late MapController mapController;
 
   @override
   void initState() {
     super.initState();
+    mapController = MapController();
     _initializeControllers();
     bannerImageUrl = widget.eventData['bannerImageUrl'];
-    mapController = MapController();
-
-    // Optional: try to initialize map location from existing event location string
     _initializeMapLocationFromAddress();
   }
 
   void _initializeControllers() {
     titleController = TextEditingController(text: widget.eventData['title'] ?? '');
     descriptionController = TextEditingController(text: widget.eventData['description'] ?? '');
-    maxArtistsController = TextEditingController(
-      text: widget.eventData['maxArtists']?.toString() ?? '',
-    );
+    maxArtistsController = TextEditingController(text: widget.eventData['maxArtists']?.toString() ?? '');
 
     final eventDateMillis = widget.eventData['eventDate'];
     if (eventDateMillis != null && eventDateMillis is int) {
@@ -72,6 +61,11 @@ class _EditEventPageState extends State<EditEventPage> {
 
     timeController = TextEditingController(text: widget.eventData['time'] ?? '');
     locationController = TextEditingController(text: widget.eventData['location'] ?? '');
+
+    // Initialize ticketPrice controller with the existing value or empty string
+    ticketPriceController = TextEditingController(
+      text: widget.eventData['ticketPrice'] != null ? widget.eventData['ticketPrice'].toString() : '',
+    );
   }
 
   Future<void> _initializeMapLocationFromAddress() async {
@@ -84,25 +78,21 @@ class _EditEventPageState extends State<EditEventPage> {
           setState(() {
             selectedLatLng = LatLng(loc.latitude, loc.longitude);
           });
-          // After the first frame, move the map controller
           WidgetsBinding.instance.addPostFrameCallback((_) {
             mapController.move(selectedLatLng!, 13);
           });
         }
-      } catch (e) {
-        // Ignore errors here or show a debug print if you want
-      }
+      } catch (_) {}
     }
   }
 
   Future<void> pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
-
     if (picked != null) {
       setState(() {
         _pickedImage = File(picked.path);
-        bannerImageUrl = picked.path; // Use local path temporarily
+        bannerImageUrl = picked.path;
       });
     }
   }
@@ -112,7 +102,8 @@ class _EditEventPageState extends State<EditEventPage> {
         descriptionController.text.isEmpty ||
         dateController.text.isEmpty ||
         timeController.text.isEmpty ||
-        maxArtistsController.text.isEmpty) {
+        maxArtistsController.text.isEmpty ||
+        ticketPriceController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill all required fields")),
       );
@@ -120,10 +111,8 @@ class _EditEventPageState extends State<EditEventPage> {
     }
 
     final int maxArtists = int.tryParse(maxArtistsController.text) ?? 0;
-
-    final DateTime date = selectedDate ??
-        DateTime.tryParse(dateController.text) ??
-        DateTime.now();
+    final DateTime date = selectedDate ?? DateTime.tryParse(dateController.text) ?? DateTime.now();
+    final double ticketPrice = double.tryParse(ticketPriceController.text) ?? 0.0;
 
     final eventData = {
       "eventId": widget.eventKey,
@@ -132,8 +121,11 @@ class _EditEventPageState extends State<EditEventPage> {
       "eventDate": date.millisecondsSinceEpoch,
       "time": timeController.text,
       "maxArtists": maxArtists,
+      "ticketPrice": ticketPrice,
       "bannerImageUrl": bannerImageUrl ?? "https://your-default-banner-url.jpg",
       "location": locationController.text,
+      "latitude": selectedLatLng?.latitude ?? widget.eventData['latitude'],
+      "longitude": selectedLatLng?.longitude ?? widget.eventData['longitude'],
     };
 
     try {
@@ -143,7 +135,6 @@ class _EditEventPageState extends State<EditEventPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Event updated successfully")),
       );
-
       Navigator.pop(context, true);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -160,6 +151,7 @@ class _EditEventPageState extends State<EditEventPage> {
     dateController.dispose();
     timeController.dispose();
     locationController.dispose();
+    ticketPriceController.dispose();
     super.dispose();
   }
 
@@ -212,7 +204,6 @@ class _EditEventPageState extends State<EditEventPage> {
               decoration: const InputDecoration(
                 hintText: "Enter Title",
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               ),
             ),
             const SizedBox(height: 10),
@@ -222,8 +213,8 @@ class _EditEventPageState extends State<EditEventPage> {
               decoration: const InputDecoration(
                 hintText: "Description",
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               ),
+              maxLines: null,
             ),
             const SizedBox(height: 10),
 
@@ -235,7 +226,6 @@ class _EditEventPageState extends State<EditEventPage> {
                     decoration: const InputDecoration(
                       hintText: "Date",
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                     ),
                     onTap: () async {
                       final picked = await showDatePicker(
@@ -247,8 +237,7 @@ class _EditEventPageState extends State<EditEventPage> {
                       if (picked != null) {
                         setState(() {
                           selectedDate = picked;
-                          dateController.text =
-                          "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+                          dateController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
                         });
                       }
                     },
@@ -262,7 +251,6 @@ class _EditEventPageState extends State<EditEventPage> {
                     decoration: const InputDecoration(
                       hintText: "Time",
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                     ),
                     onTap: () async {
                       final picked = await showTimePicker(
@@ -282,7 +270,6 @@ class _EditEventPageState extends State<EditEventPage> {
             ),
             const SizedBox(height: 10),
 
-            // Map + Search button
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -307,8 +294,7 @@ class _EditEventPageState extends State<EditEventPage> {
                               width: 80,
                               height: 80,
                               point: selectedLatLng!,
-                              builder: (ctx) =>
-                              const Icon(Icons.location_pin, color: Colors.red, size: 40),
+                              builder: (ctx) => const Icon(Icons.location_pin, color: Colors.red, size: 40),
                             ),
                         ],
                       ),
@@ -326,14 +312,13 @@ class _EditEventPageState extends State<EditEventPage> {
                         decoration: const InputDecoration(
                           hintText: "Event Location",
                           border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     SizedBox(
                       height: 48,
-                      width: 100, // Reduced width to make it smaller
+                      width: 100,
                       child: ElevatedButton.icon(
                         onPressed: () async {
                           final query = locationController.text.trim();
@@ -366,7 +351,6 @@ class _EditEventPageState extends State<EditEventPage> {
                         icon: const Icon(Icons.search),
                         label: const Text("Search"),
                         style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(36), // Button height
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                         ),
                       ),
@@ -383,10 +367,24 @@ class _EditEventPageState extends State<EditEventPage> {
               decoration: const InputDecoration(
                 hintText: "Maximum Artists",
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               ),
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            ),
+
+            const SizedBox(height: 10),
+
+            TextField(
+              controller: ticketPriceController,
+              decoration: const InputDecoration(
+                hintText: "Ticket Price",
+                border: OutlineInputBorder(),
+                prefixText: "\$ ",
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+              ],
             ),
 
             const SizedBox(height: 20),
