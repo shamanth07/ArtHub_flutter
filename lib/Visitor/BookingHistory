@@ -1,1 +1,146 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+
+class BookingHistoryPage extends StatefulWidget {
+  const BookingHistoryPage({super.key});
+
+  @override
+  State<BookingHistoryPage> createState() => _BookingHistoryPageState();
+}
+
+class _BookingHistoryPageState extends State<BookingHistoryPage> {
+  final DatabaseReference _bookingRef =
+  FirebaseDatabase.instance.ref().child('bookings');
+
+  late Future<List<Map<String, dynamic>>> _bookingHistoryFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _bookingHistoryFuture = fetchBookingHistory();
+  }
+
+  Future<List<Map<String, dynamic>>> fetchBookingHistory() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return [];
+
+    final snapshot =
+    await _bookingRef.orderByChild('userId').equalTo(user.uid).once();
+    final bookings = <Map<String, dynamic>>[];
+
+    if (snapshot.snapshot.value != null) {
+      final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+      data.forEach((key, value) {
+        final booking = Map<String, dynamic>.from(value);
+        bookings.add(booking);
+      });
+    }
+
+    bookings.sort((a, b) => b['bookingTimestamp']
+        .toString()
+        .compareTo(a['bookingTimestamp'].toString())); // Most recent first
+    return bookings;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("My Booking History"),
+        centerTitle: true,
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _bookingHistoryFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text("No bookings found."));
+          }
+
+          final bookings = snapshot.data!;
+          return ListView.builder(
+            itemCount: bookings.length,
+            itemBuilder: (context, index) {
+              final booking = bookings[index];
+              final event = booking['event'] ?? {};
+
+              final imageUrl = event['imageUrl'] ?? '';
+              final title = event['title'] ?? 'No Title';
+              final location = event['location'] ?? 'Unknown';
+              final date = event['date'] ?? 'Unknown Date';
+              final time = event['time'] ?? 'Unknown Time';
+
+              final ticketsBooked = booking['ticketsBooked'] ?? 0;
+              final subtotal = booking['subtotal'] ?? 0.0;
+              final tax = booking['tax'] ?? 0.0;
+              final total = booking['total'] ?? 0.0;
+
+              final timestampStr = booking['bookingTimestamp'] ?? '';
+              final formattedTimestamp = timestampStr
+                  .toString()
+                  .replaceFirst('T', ' ')
+                  .split('.')
+                  .first;
+
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (imageUrl.isNotEmpty)
+                      ClipRRect(
+                        borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(12)),
+                        child: Image.network(
+                          imageUrl,
+                          height: 180,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text("📍 $location"),
+                          Text("📅 $date at $time"),
+                          const SizedBox(height: 4),
+                          Text("Tickets: $ticketsBooked"),
+                          Text("Subtotal: ₹${subtotal.toStringAsFixed(2)}"),
+                          Text("Tax: ₹${tax.toStringAsFixed(2)}"),
+                          Text("Total: ₹${total.toStringAsFixed(2)}"),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Booked on: $formattedTimestamp",
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
 
