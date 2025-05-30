@@ -1,4 +1,3 @@
-
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -26,6 +25,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
   final TextEditingController dateController = TextEditingController();
   final TextEditingController timeController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
+  final TextEditingController ticketPriceController = TextEditingController(); // ✅ New controller
 
   DateTime? selectedDate;
   File? _pickedImage;
@@ -93,7 +93,8 @@ class _CreateEventPageState extends State<CreateEventPage> {
         descriptionController.text.isEmpty ||
         dateController.text.isEmpty ||
         timeController.text.isEmpty ||
-        maxVisitorsController.text.isEmpty) {
+        maxVisitorsController.text.isEmpty ||
+        ticketPriceController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill all required fields")),
       );
@@ -116,6 +117,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
     final newEventRef = ref.push();
 
     final int maxArtists = int.tryParse(maxVisitorsController.text) ?? 0;
+    final double ticketPrice = double.tryParse(ticketPriceController.text) ?? 0;
     final DateTime date = selectedDate ??
         DateTime.tryParse(dateController.text) ??
         DateTime.now();
@@ -127,6 +129,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
       "eventDate": date.millisecondsSinceEpoch,
       "time": timeController.text,
       "maxArtists": maxArtists,
+      "ticketPrice": ticketPrice, // ✅ Add ticketPrice to DB
       "bannerImageUrl": imageUrl,
       "location": locationController.text,
       "latitude": _currentLatLng.latitude,
@@ -145,6 +148,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
     dateController.clear();
     timeController.clear();
     maxVisitorsController.clear();
+    ticketPriceController.clear(); // ✅ Clear ticket price field
     locationController.clear();
 
     setState(() {
@@ -272,8 +276,6 @@ class _CreateEventPageState extends State<CreateEventPage> {
               ],
             ),
             const SizedBox(height: 8),
-
-            // Location input and search button in one row
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
@@ -298,7 +300,6 @@ class _CreateEventPageState extends State<CreateEventPage> {
                 ],
               ),
             ),
-
             SizedBox(
               height: 180,
               child: FlutterMap(
@@ -320,15 +321,14 @@ class _CreateEventPageState extends State<CreateEventPage> {
                         point: _currentLatLng,
                         width: 40,
                         height: 40,
-                        builder: (context) =>
-                        const Icon(Icons.location_pin, color: Colors.red, size: 40),
+                        builder: (context) => const Icon(Icons.location_pin,
+                            color: Colors.red, size: 40),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 8),
             TextField(
               controller: maxVisitorsController,
@@ -343,6 +343,23 @@ class _CreateEventPageState extends State<CreateEventPage> {
                 FilteringTextInputFormatter.digitsOnly,
               ],
             ),
+            const SizedBox(height: 8),
+
+            // ✅ Ticket Price Field
+            TextField(
+              controller: ticketPriceController,
+              decoration: const InputDecoration(
+                hintText: "Ticket Price",
+                border: OutlineInputBorder(),
+                contentPadding:
+                EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              ),
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+              ],
+            ),
+
             const SizedBox(height: 8),
             Center(
               child: isUploading
