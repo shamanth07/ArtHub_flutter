@@ -7,7 +7,7 @@ import 'package:newarthub/Visitor/VProfile.dart';
 import 'package:newarthub/Visitor/SignUp.dart';
 import 'package:newarthub/Visitor/VSettings.dart';
 import 'package:newarthub/Visitor/BookEvent.dart';
-
+import 'package:newarthub/Artist/ArtistDetailPage.dart';
 class VisitorHomePage extends StatefulWidget {
   const VisitorHomePage({super.key});
 
@@ -22,6 +22,15 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
   List<Map<String, dynamic>> artworks = [];
   List<Map<String, dynamic>> events = [];
   bool isLoading = true;
+
+
+  Future<int> getLikeCount(String artworkId) async {
+    final snapshot = await dbRef.child('artworkInteractions/$artworkId/likes').get();
+    if (snapshot.exists && snapshot.value is Map) {
+      return (snapshot.value as Map).length;
+    }
+    return 0;
+  }
 
   final TextEditingController searchController = TextEditingController();
   final String? userId = FirebaseAuth.instance.currentUser?.uid;
@@ -147,23 +156,51 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
     return 0;
   }
 
+  // Future<List<Map<String, dynamic>>> fetchComments(String artworkId) async {
+  //   final snapshot =
+  //   await dbRef.child('artworkInteractions/$artworkId/comments').get();
+  //   List<Map<String, dynamic>> comments = [];
+  //   if (snapshot.exists && snapshot.value is Map) {
+  //     final data = snapshot.value as Map;
+  //     data.forEach((key, value) {
+  //       if (value is Map) {
+  //         comments.add({
+  //           'comment': value['comment'] ?? '',
+  //           'userId': value['userId'] ?? '',
+  //           'timestamp': value['timestamp'] ?? 0,
+  //         });
+  //       }
+  //     });
+  //     comments.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
+  //   }
+  //   return comments;
+  // }
   Future<List<Map<String, dynamic>>> fetchComments(String artworkId) async {
     final snapshot =
     await dbRef.child('artworkInteractions/$artworkId/comments').get();
     List<Map<String, dynamic>> comments = [];
+
     if (snapshot.exists && snapshot.value is Map) {
       final data = snapshot.value as Map;
-      data.forEach((key, value) {
-        if (value is Map) {
+
+      for (final entry in data.entries) {
+        final commentData = entry.value;
+        if (commentData is Map) {
+          final userId = commentData['userId'];
+          final emailSnapshot = await dbRef.child('users/$userId/email').get();
+          final userEmail = emailSnapshot.value?.toString() ?? 'Unknown user';
+
           comments.add({
-            'comment': value['comment'] ?? '',
-            'userId': value['userId'] ?? '',
-            'timestamp': value['timestamp'] ?? 0,
+            'comment': commentData['comment'] ?? '',
+            'userEmail': userEmail,
+            'timestamp': commentData['timestamp'] ?? 0,
           });
         }
-      });
+      }
+
       comments.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
     }
+
     return comments;
   }
 
@@ -173,6 +210,7 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
     dbRef.child('artworkInteractions/$artworkId/comments').push();
     await commentRef.set({
       'userId': userId,
+
       'comment': comment,
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     });
@@ -218,9 +256,11 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
                         return ListTile(
                           leading: const Icon(Icons.person),
                           title: Text(comment['comment']),
-                          subtitle:
-                          Text("User: ${comment['userId']}\n$time"),
+                          subtitle: Text("${comment['userEmail']}\n${DateFormat('MMM d, h:mm a').format(
+                            DateTime.fromMillisecondsSinceEpoch(comment['timestamp']),
+                          )}"),
                         );
+
                       },
                     );
                   },
@@ -418,13 +458,25 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
                 final item = filteredItems[index];
                 final id = item['id'];
 
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15)),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                return GestureDetector(
+                    onTap: selectedCategory == 'Painting'
+                    ? () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ArtistDetailsPage(artistId: item['artistId'] as String),
+                    ),
+                  );
+                }
+                    : null,
+                child: Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15)),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+
+                crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       AspectRatio(
                         aspectRatio: 1,
@@ -494,35 +546,36 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
                             ],
                             if (selectedCategory == 'Painting') ...[
                               const SizedBox(height: 10),
-                              FutureBuilder<bool>(
-                                future: isLiked(id),
-                                builder: (_, snap) {
-                                  final liked = snap.data ?? false;
+                              FutureBuilder<int>(
+                                future: getLikeCount(id),
+                                builder: (context, snapshot) {
+                                  final likeCount = snapshot.data ?? 0;
                                   return Row(
                                     children: [
-                                      IconButton(
-                                        icon: Icon(
-                                          liked
-                                              ? Icons.favorite
-                                              : Icons.favorite_border,
-                                          color: Colors.red,
-                                        ),
-                                        onPressed: () =>
-                                            toggleLike(id),
+                                      FutureBuilder<bool>(
+                                        future: isLiked(id),
+                                        builder: (context, snapshot) {
+                                          final liked = snapshot.data ?? false;
+                                          return IconButton(
+                                            icon: Icon(
+                                              liked ? Icons.favorite : Icons.favorite_border,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed: () => toggleLike(id),
+                                          );
+                                        },
                                       ),
+                                      Text('$likeCount'),
+                                      const SizedBox(width: 16),
                                       FutureBuilder<int>(
                                         future: getCommentCount(id),
                                         builder: (_, snap) {
-                                          final count =
-                                              snap.data ?? 0;
+                                          final count = snap.data ?? 0;
                                           return Row(
                                             children: [
                                               IconButton(
-                                                icon: const Icon(
-                                                    Icons.comment),
-                                                onPressed: () =>
-                                                    showCommentDialog(
-                                                        id),
+                                                icon: const Icon(Icons.comment),
+                                                onPressed: () => showCommentDialog(id),
                                               ),
                                               Text('$count'),
                                             ],
@@ -533,12 +586,14 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
                                   );
                                 },
                               )
+
                             ]
                           ],
                         ),
                       ),
                     ],
                   ),
+                )
                 );
               },
             ),
