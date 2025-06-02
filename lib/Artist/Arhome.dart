@@ -7,6 +7,7 @@ import 'package:newarthub/Artist/ArProfile.dart';
 import 'package:newarthub/Artist/EditArtwork.dart';
 import 'package:newarthub/Artist/ApplyEvents.dart';
 import 'package:newarthub/Artist/ArSettings.dart';
+
 class ArtistHomePage extends StatefulWidget {
   const ArtistHomePage({Key? key}) : super(key: key);
 
@@ -144,15 +145,18 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
             isLoading
                 ? const CircularProgressIndicator()
                 : Expanded(
-              child: artworks.isEmpty
-                  ? const Center(child: Text("No artworks uploaded yet."))
-                  : ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: artworks.length,
-                itemBuilder: (context, index) {
-                  final artwork = artworks[index];
-                  return buildArtworkCard(artwork);
-                },
+              child: RefreshIndicator(
+                onRefresh: fetchArtworksFromFirebase,
+                child: artworks.isEmpty
+                    ? const Center(child: Text("No artworks uploaded yet."))
+                    : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: artworks.length,
+                  itemBuilder: (context, index) {
+                    final artwork = artworks[index];
+                    return buildArtworkCard(artwork);
+                  },
+                ),
               ),
             ),
           ],
@@ -176,7 +180,7 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
         );
 
         if (shouldRefresh == true) {
-          fetchArtworksFromFirebase(); // Refresh on return
+          fetchArtworksFromFirebase();
         }
       },
       child: Container(
@@ -243,7 +247,6 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
       ),
     );
   }
-
 
   Widget buildDrawer(BuildContext context) {
     return Drawer(
@@ -349,4 +352,3 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
     );
   }
 }
-
