@@ -1,16 +1,18 @@
+// apply_event_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 
-class ViewAllEventsPage extends StatefulWidget {
-  const ViewAllEventsPage({super.key});
+class ApplyEventPage extends StatefulWidget {
+  const ApplyEventPage({super.key});
 
   @override
-  State<ViewAllEventsPage> createState() => _ViewAllEventsPageState();
+  State<ApplyEventPage> createState() => _ApplyEventPageState();
 }
 
-class _ViewAllEventsPageState extends State<ViewAllEventsPage> {
+class _ApplyEventPageState extends State<ApplyEventPage> {
   final DatabaseReference _eventsRef = FirebaseDatabase.instance.ref().child('events');
 
   String artistId = '';
@@ -43,30 +45,25 @@ class _ViewAllEventsPageState extends State<ViewAllEventsPage> {
     if (snapshot.exists) {
       final data = Map<String, dynamic>.from(snapshot.value as Map);
 
-      final loadedEvents = await Future.wait(data.entries.map((entry) async {
+      final filteredEvents = await Future.wait(data.entries.map((entry) async {
         final eventData = Map<String, dynamic>.from(entry.value);
         final eventId = entry.key;
 
-        // Check if artist has applied
         final inviteSnapshot = await FirebaseDatabase.instance
             .ref('invitations/$eventId/$artistId')
             .get();
 
-        String? status;
-        if (inviteSnapshot.exists) {
-          final inviteData = Map<String, dynamic>.from(inviteSnapshot.value as Map);
-          status = inviteData['status'] ?? 'pending';
+        if (!inviteSnapshot.exists) {
+          return {
+            'eventId': eventId,
+            ...eventData,
+          };
         }
-
-        return {
-          'eventId': eventId,
-          ...eventData,
-          'applicationStatus': status,
-        };
+        return null;
       }).toList());
 
       setState(() {
-        _events = loadedEvents;
+        _events = filteredEvents.whereType<Map<String, dynamic>>().toList();
       });
     }
   }
@@ -97,7 +94,7 @@ class _ViewAllEventsPageState extends State<ViewAllEventsPage> {
       const SnackBar(content: Text("Applied successfully! Status: Pending")),
     );
 
-    fetchEvents(); // Refresh to show updated status
+    fetchEvents(); // Refresh the list
   }
 
   String formatDate(int timestamp) {
@@ -108,14 +105,13 @@ class _ViewAllEventsPageState extends State<ViewAllEventsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("All Events")),
+      appBar: AppBar(title: const Text("Apply to Events")),
       body: _events.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: Text("No available events to apply."))
           : ListView.builder(
         itemCount: _events.length,
         itemBuilder: (context, index) {
           final event = _events[index];
-          final status = event['applicationStatus'];
 
           return Card(
             margin: const EdgeInsets.all(10),
@@ -169,26 +165,12 @@ class _ViewAllEventsPageState extends State<ViewAllEventsPage> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      if (status != null)
-                        Text(
-                          "Status: ${status.toString().toUpperCase()}",
-                          style: TextStyle(
-                            color: status == 'accepted'
-                                ? Colors.green
-                                : status == 'rejected'
-                                ? Colors.red
-                                : Colors.orange,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      const SizedBox(height: 8),
-                      if (status == null)
-                        ElevatedButton(
-                          onPressed: () {
-                            applyToEvent(event['eventId']);
-                          },
-                          child: const Text("Apply to Event"),
-                        ),
+                      ElevatedButton(
+                        onPressed: () {
+                          applyToEvent(event['eventId']);
+                        },
+                        child: const Text("Apply to Event"),
+                      ),
                     ],
                   ),
                 ),
