@@ -41,3 +41,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Ignore entire android build folder (includes APKs)
+/android/app/build/
+
+# Ignore all APK files
+*.apk
