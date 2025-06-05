@@ -8,6 +8,7 @@ import 'package:newarthub/Visitor/SignUp.dart';
 import 'package:newarthub/Visitor/VSettings.dart';
 import 'package:newarthub/Visitor/BookEvent.dart';
 import 'package:newarthub/Artist/ArtistDetailPage.dart';
+import 'package:newarthub/Visitor/Favourites.dart';
 class VisitorHomePage extends StatefulWidget {
   const VisitorHomePage({super.key});
 
@@ -16,13 +17,50 @@ class VisitorHomePage extends StatefulWidget {
 }
 
 class _VisitorHomePageState extends State<VisitorHomePage> {
-  String selectedCategory = 'Painting';
+  String selectedCategory = 'Art Discovery';
   final dbRef = FirebaseDatabase.instance.ref();
   String? userEmail;
   List<Map<String, dynamic>> artworks = [];
   List<Map<String, dynamic>> events = [];
+  List<Map<String, dynamic>> allArtworks = [];
+  List<Map<String, dynamic>> filteredItems = [];
   bool isLoading = true;
+  @override
 
+  Future<void> fetchArtworks() async {
+    DatabaseReference artworksRef = FirebaseDatabase.instance.ref().child('artists');
+
+    final snapshot = await artworksRef.get();
+    List<Map<String, dynamic>> tempArtworks = [];
+
+    if (snapshot.exists) {
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+
+      data.forEach((artistId, artistData) {
+        final artistMap = Map<String, dynamic>.from(artistData);
+        final artworks = artistMap['artworks'] as Map?;
+
+        if (artworks != null) {
+          artworks.forEach((artworkId, artworkData) {
+            final artworkMap = Map<String, dynamic>.from(artworkData);
+            artworkMap['id'] = artworkId;
+            artworkMap['artistId'] = artistId;                // ✅ attach artistId
+            artworkMap['category'] = artworkMap['category'];  // ✅ ensure category is attached
+
+            tempArtworks.add(artworkMap);
+          });
+        }
+      });
+
+      setState(() {
+        allArtworks = tempArtworks;
+        filteredItems = allArtworks;
+      });
+    }
+  }
+  Future<void> _refreshData() async {
+    await fetchArtworks();
+  }
 
   Future<int> getLikeCount(String artworkId) async {
     final snapshot = await dbRef.child('artworkInteractions/$artworkId/likes').get();
@@ -43,12 +81,13 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
       userEmail = user?.email;
     });
     fetchData();
+    fetchArtworks();
   }
 
   Future<void> fetchData() async {
     setState(() => isLoading = true);
 
-    if (selectedCategory == 'Painting') {
+    if (selectedCategory == 'Art Discovery') {
       final snapshot = await dbRef.child('artists').get();
       List<Map<String, dynamic>> tempArtworks = [];
 
@@ -65,10 +104,14 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
                   'id': artworkId,
                   'title': artworkData['title'] ?? '',
                   'imageUrl': artworkData['imageUrl'] ?? '',
+                  'artistId': artistId,
+                  // <--- ADD THIS
+                  'category': artworkData['category'] ?? 'paintings',
+                  // See next fix
                 });
               }
-            });
-          }
+              });
+            }
         });
       }
 
@@ -117,7 +160,7 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
 
   List<Map<String, dynamic>> getFilteredItems() {
     final query = searchController.text.toLowerCase();
-    return selectedCategory == 'Painting'
+    return selectedCategory == 'Art Discovery'
         ? artworks
         .where((art) => art['title'].toLowerCase().contains(query))
         .toList()
@@ -156,25 +199,7 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
     return 0;
   }
 
-  // Future<List<Map<String, dynamic>>> fetchComments(String artworkId) async {
-  //   final snapshot =
-  //   await dbRef.child('artworkInteractions/$artworkId/comments').get();
-  //   List<Map<String, dynamic>> comments = [];
-  //   if (snapshot.exists && snapshot.value is Map) {
-  //     final data = snapshot.value as Map;
-  //     data.forEach((key, value) {
-  //       if (value is Map) {
-  //         comments.add({
-  //           'comment': value['comment'] ?? '',
-  //           'userId': value['userId'] ?? '',
-  //           'timestamp': value['timestamp'] ?? 0,
-  //         });
-  //       }
-  //     });
-  //     comments.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
-  //   }
-  //   return comments;
-  // }
+
   Future<List<Map<String, dynamic>>> fetchComments(String artworkId) async {
     final snapshot =
     await dbRef.child('artworkInteractions/$artworkId/comments').get();
@@ -301,7 +326,7 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
         controller: searchController,
         decoration: InputDecoration(
           hintText:
-          'Search ${selectedCategory == 'Painting' ? 'artworks' : 'events'}...',
+          'Search ${selectedCategory == 'Art Discovery' ? 'artworks' : 'events'}...',
           prefixIcon: const Icon(Icons.search),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
@@ -319,7 +344,7 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
           ElevatedButton(onPressed: () {}, child: const Text("Filters")),
           DropdownButton<String>(
             value: selectedCategory,
-            items: ['Painting', 'Events']
+            items: ['Art Discovery', 'Events']
                 .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                 .toList(),
             onChanged: (value) {
@@ -338,6 +363,7 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
 
   AppBar buildAppBar() {
     return AppBar(title: const Text("ARTHUB"));
+
   }
 
   Drawer buildDrawer(String? email) {
@@ -386,6 +412,13 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
           ),
           const Divider(),
           ListTile(
+            leading: const Icon(Icons.history),
+            title: const Text('Favourites'),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const FavouritesPage())),
+          ),
+          const Divider(),
+          ListTile(
             leading: const Icon(Icons.settings),
             title: const Text('Settings'),
             onTap: () => Navigator.push(context,
@@ -427,7 +460,6 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final filteredItems = getFilteredItems();
@@ -437,20 +469,32 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
       drawer: buildDrawer(userEmail),
       appBar: buildAppBar(),
       body: Column(
-        children: [
+          children: [
           buildTopBar(),
-          const SizedBox(height: 10),
-          buildSearchBar(),
-          const SizedBox(height: 10),
-          Expanded(
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : filteredItems.isEmpty
-                ? Center(
-              child: Text(selectedCategory == 'Painting'
-                  ? 'No artworks to display.'
-                  : 'No events to display.'),
-            )
+      const SizedBox(height: 10),
+      buildSearchBar(),
+      const SizedBox(height: 10),
+      Expanded(
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+          onRefresh: fetchArtworks, // your async data-fetching function
+          child: filteredItems.isEmpty
+              ? ListView( // Required because RefreshIndicator needs a scrollable widget
+            children: [
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 100),
+                  child: Text(
+                    selectedCategory == 'Art Discovery'
+                        ? 'No artworks to display.'
+                        : 'No events to display.',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ],
+          )
                 : ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               itemCount: filteredItems.length,
@@ -458,18 +502,30 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
                 final item = filteredItems[index];
                 final id = item['id'];
 
+
+
                 return GestureDetector(
-                    onTap: selectedCategory == 'Painting'
-                    ? () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ArtistDetailsPage(artistId: item['artistId'] as String),
-                    ),
-                  );
-                }
-                    : null,
-                child: Card(
+                    onTap: () {
+                      final artistId = item['artistId'];
+                      final category = item['category'];
+
+                      print("Tapped item. Category: $category, artistId: $artistId");
+
+                      if (artistId != null && artistId is String) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ArtistDetailsPage(artistId: artistId),
+                          ),
+                        );
+                      } else {
+                        print("Navigation condition failed.");
+                      }
+                    },
+
+
+
+                    child: Card(
                 margin: const EdgeInsets.only(bottom: 16),
                 shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15)),
@@ -509,12 +565,12 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
                             ),
                           )
                               : null,
-                          child: item[selectedCategory == 'Painting'
+                          child: item[selectedCategory == 'Art Discovery'
                               ? 'imageUrl'
                               : 'bannerImageUrl'] !=
                               ''
                               ? Image.network(
-                            item[selectedCategory == 'Painting'
+                            item[selectedCategory == 'Art Discovery'
                                 ? 'imageUrl'
                                 : 'bannerImageUrl'],
                             fit: BoxFit.cover,
@@ -544,7 +600,7 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
                               Text("Time: ${item['time']}"),
                               Text("Description: ${item['description']}"),
                             ],
-                            if (selectedCategory == 'Painting') ...[
+                            if (selectedCategory == 'Art Discovery') ...[
                               const SizedBox(height: 10),
                               FutureBuilder<int>(
                                 future: getLikeCount(id),
@@ -598,6 +654,7 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
               },
             ),
           ),
+      )
         ],
       ),
     );
