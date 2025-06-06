@@ -7,7 +7,7 @@ import 'package:newarthub/Artist/ArProfile.dart';
 import 'package:newarthub/Artist/EditArtwork.dart';
 import 'package:newarthub/Artist/ApplyEvent.dart';
 import 'package:newarthub/Artist/ArSettings.dart';
-
+import 'package:newarthub/Artist/ArtistStatus.dart';
 class ArtistHomePage extends StatefulWidget {
   const ArtistHomePage({Key? key}) : super(key: key);
 
@@ -304,7 +304,7 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
                 ListTile(
                   leading: const Icon(Icons.check_circle),
                   title: const Text('Status'),
-                  onTap: () => Navigator.pushNamed(context, '/applicationStatus'),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ApplicationStatusPage())),
                 ),
                 const Divider(),
                 ListTile(
