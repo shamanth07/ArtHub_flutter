@@ -63,6 +63,28 @@ class _BookEventPageState extends State<BookEventPage> {
         return;
       }
 
+      // Parse event date - expects ISO 8601 format: YYYY-MM-DD or full ISO
+      final eventDate = DateTime.tryParse(widget.date);
+      final today = DateTime.now();
+
+      if (eventDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Invalid event date.")),
+        );
+        return;
+      }
+
+      // Compare only year, month, day - ignore time
+      final eventDateOnly = DateTime(eventDate.year, eventDate.month, eventDate.day);
+      final todayDateOnly = DateTime(today.year, today.month, today.day);
+
+      if (eventDateOnly.isBefore(todayDateOnly)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("This event is no longer available for booking.")),
+        );
+        return;
+      }
+
       final bookingRef = _database.child('bookings').push();
 
       await bookingRef.set({
@@ -201,7 +223,7 @@ class _BookEventPageState extends State<BookEventPage> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
-                    child: const Text("Book Now"),
+                    child: const Text("Pay Now"),
                   ),
                 ),
               ),
@@ -212,4 +234,3 @@ class _BookEventPageState extends State<BookEventPage> {
     );
   }
 }
-
