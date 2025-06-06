@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:art_hub/Admin/AdForgetPassword.dart';
-import 'package:art_hub/Artist/ArSignUp.dart';
- import 'package:art_hub/Visitor/SignUp.dart';
-import 'package:art_hub/Admin/Adhome.dart';
+import 'package:newarthub/Admin/AdForgetPassword.dart';
+import 'package:newarthub/Artist/ArSignUp.dart';
+ import 'package:newarthub/Visitor/SignUp.dart';
+import 'package:newarthub/Admin/Adhome.dart';
 
 class AdSignUpPage extends StatefulWidget {
   const AdSignUpPage({super.key});

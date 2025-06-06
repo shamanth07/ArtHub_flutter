@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:art_hub/Artist/Arhome.dart';
-import 'package:art_hub/Visitor/SignUp.dart';
-import 'package:art_hub/Admin/AdLogin.dart';
-import 'package:art_hub/Visitor/LogIn.dart';
-import 'package:art_hub/Artist/ArLogin.dart';
-import 'package:art_hub/Artist/ArSignUp.dart';
-import 'package:art_hub/Artist/ArForgetPassword.dart';
+import 'package:newarthub/Artist/Arhome.dart';
+import 'package:newarthub/Visitor/SignUp.dart';
+import 'package:newarthub/Admin/AdLogin.dart';
+import 'package:newarthub/Visitor/LogIn.dart';
+import 'package:newarthub/Artist/ArLogin.dart';
+import 'package:newarthub/Artist/ArSignUp.dart';
+import 'package:newarthub/Artist/ArForgetPassword.dart';
 
 class ArSignupPage extends StatefulWidget {
   const ArSignupPage({super.key});
@@ -78,7 +78,7 @@ class _ArSignupPageState extends State<ArSignupPage> {
         if (role == 'Artist') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => ArHomePage()),
+            MaterialPageRoute(builder: (context) => ArtistHomePage()),
           );
         } else {
           await FirebaseAuth.instance.signOut();

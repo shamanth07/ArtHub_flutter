@@ -3,7 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 import 'package:newarthub/Admin/CreatEvent.dart';
 import 'package:newarthub/Admin/AdLogin.dart';
-import 'package:newarthub/Admin/EditEvent.dart'; // Import the EditEventPage
+import 'package:newarthub/Admin/EditEventPage.dart'; // Import the EditEventPage.dart
 import 'package:newarthub/Admin/AdProfile.dart';
 import 'package:newarthub/Admin/invitations.dart';
 import 'package:newarthub/Admin/Settings.dart';

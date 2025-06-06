@@ -1,4 +1,4 @@
-package com.example.art_hub;
+package com.example.newarthub;
 
 import io.flutter.embedding.android.FlutterActivity;
 

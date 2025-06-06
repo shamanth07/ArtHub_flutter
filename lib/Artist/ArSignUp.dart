@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:art_hub/Artist/Arhome.dart';
-import 'package:art_hub/Visitor/SignUp.dart';
-import 'package:art_hub/Admin/AdLogin.dart';
-import 'package:art_hub/Visitor/LogIn.dart';
-import 'package:art_hub/Artist/ArLogin.dart';
-import 'package:art_hub/Artist/ArSignUp.dart';
+import 'package:newarthub/Artist/Arhome.dart';
+import 'package:newarthub/Visitor/SignUp.dart';
+import 'package:newarthub/Admin/AdLogin.dart';
+import 'package:newarthub/Visitor/LogIn.dart';
+import 'package:newarthub/Artist/ArLogin.dart';
+import 'package:newarthub/Artist/ArSignUp.dart';
 
 class ArSigninPage extends StatefulWidget {
   const ArSigninPage({super.key});
@@ -79,7 +79,7 @@ class _ArSigninPageState extends State<ArSigninPage> {
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => ArHomePage()),
+          MaterialPageRoute(builder: (context) => ArtistHomePage()),
         );
       } on FirebaseAuthException catch (e) {
         String errorMessage;

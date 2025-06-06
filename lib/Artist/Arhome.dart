@@ -5,7 +5,7 @@ import 'package:newarthub/Artist/uploadartwork.dart';
 import 'package:newarthub/Artist/ArSignUp.dart';
 import 'package:newarthub/Artist/ArProfile.dart';
 import 'package:newarthub/Artist/EditArtwork.dart';
-import 'package:newarthub/Artist/ApplyEvents.dart';
+import 'package:newarthub/Artist/ApplyEvent.dart';
 import 'package:newarthub/Artist/ArSettings.dart';
 
 class ArtistHomePage extends StatefulWidget {
@@ -298,7 +298,7 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
                 ListTile(
                   leading: const Icon(Icons.calendar_today),
                   title: const Text('Apply For Event'),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ViewAllEventsPage())),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ApplyEventPage())),
                 ),
                 const Divider(),
                 ListTile(

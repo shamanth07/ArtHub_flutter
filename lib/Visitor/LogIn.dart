@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:art_hub/Visitor/SignUp.dart';
-import 'package:art_hub/Visitor/ForgetPassword.dart';
-import 'package:art_hub/Admin/AdLogin.dart';
-import 'package:art_hub/Artist/ArSignUp.dart';
-import 'package:art_hub/Visitor/Vhome.dart';
+import 'package:newarthub/Visitor/SignUp.dart';
+import 'package:newarthub/Visitor/ForgetPassword.dart';
+import 'package:newarthub/Admin/AdLogin.dart';
+import 'package:newarthub/Artist/ArSignUp.dart';
+import 'package:newarthub/Visitor/Vhome.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -41,7 +41,7 @@ class _SignupPageState extends State<SignupPage> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) =>  HomePage(),
+            builder: (context) =>  VisitorHomePage(),
           ),
         );
       } on FirebaseAuthException catch (e) {
