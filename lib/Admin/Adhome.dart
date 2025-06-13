@@ -1,12 +1,15 @@
+// admin_events_page.dart (Updated with RSVP count based on event title)
+
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 import 'package:newarthub/Admin/CreatEvent.dart';
 import 'package:newarthub/Admin/AdLogin.dart';
-import 'package:newarthub/Admin/EditEventPage.dart'; // Import the EditEventPage.dart
+import 'package:newarthub/Admin/EditEventPage.dart';
 import 'package:newarthub/Admin/AdProfile.dart';
 import 'package:newarthub/Admin/invitations.dart';
 import 'package:newarthub/Admin/Settings.dart';
+
 class AdminEventsPage extends StatefulWidget {
   const AdminEventsPage({super.key});
 
@@ -16,12 +19,15 @@ class AdminEventsPage extends StatefulWidget {
 
 class _AdminEventsPageState extends State<AdminEventsPage> {
   final DatabaseReference eventsRef = FirebaseDatabase.instance.ref("events");
+  final DatabaseReference rsvpRef = FirebaseDatabase.instance.ref("rsvp");
   List<Map<dynamic, dynamic>> events = [];
+  Map<String, int> rsvpCounts = {};
 
   @override
   void initState() {
     super.initState();
     fetchEvents();
+    fetchRSVPCounts();
   }
 
   void fetchEvents() {
@@ -42,6 +48,30 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
         });
       }
     });
+  }
+
+  void fetchRSVPCounts() async {
+    final countsRef = FirebaseDatabase.instance.ref('rsvp_counts');
+    final snapshot = await countsRef.get();
+
+    if (snapshot.exists) {
+      final Map<String, int> tempCounts = {};
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+
+      data.forEach((eventTitle, countMap) {
+        if (countMap is Map && countMap['attending'] is int) {
+          tempCounts[eventTitle] = countMap['attending'];
+        }
+      });
+
+      setState(() {
+        rsvpCounts = tempCounts;
+      });
+    } else {
+      setState(() {
+        rsvpCounts = {};
+      });
+    }
   }
 
   void deleteEvent(String key) async {
@@ -70,7 +100,6 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
     }
   }
 
-
   String formatDate(dynamic timestamp) {
     final int millis = (timestamp is double)
         ? timestamp.toInt()
@@ -89,7 +118,6 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
         child: Column(
           children: [
             const SizedBox(height: 50),
-            // Logo
             const Padding(
               padding: EdgeInsets.only(left: 20),
               child: Align(
@@ -100,91 +128,55 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
                 ),
               ),
             ),
-
-            const Text(
-              "Account",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
+            const Text("Account", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 15),
-
-            // Profile Image Placeholder
             const CircleAvatar(
               radius: 35,
               backgroundColor: Colors.grey,
               child: Text("Image", style: TextStyle(color: Colors.white)),
             ),
             const SizedBox(height: 10),
-
-            // Admin Name
-            const Text(
-              "Abhishek(Admin)",
-              style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54),
-            ),
+            const Text("Abhishek(Admin)",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54)),
             const SizedBox(height: 30),
-
-            // Menu Items
             drawerItem(Icons.person, "Profile", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AdminProfilePage()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminProfilePage()));
             }),
             drawerItem(Icons.calendar_today, "Create Event", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CreateEventPage()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateEventPage()));
             }),
             drawerItem(Icons.calendar_today, "Invitations", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AdminInvitationsPage()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminInvitationsPage()));
             }),
             drawerItem(Icons.insert_drive_file, "Reports", () {}),
             drawerItem(Icons.settings, "Settings", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsPage()),
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsPage()));
+            }),
+            drawerItem(Icons.logout, "Logout", () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Confirm Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => const AdSignUpPage()),
+                        );
+                      },
+                      child: const Text('Logout', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
               );
             }),
-
-            // Logout button just below Settings
-            drawerItem(
-              Icons.logout,
-              "Logout",
-                  () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Confirm Logout'),
-                    content: const Text('Are you sure you want to logout?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(), // dismiss dialog
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop(); // dismiss dialog
-                          // TODO: Add logout logic here, e.g. FirebaseAuth.instance.signOut();
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => const AdSignUpPage()),
-                          );
-                        },
-                        child: const Text('Logout', style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
           ],
         ),
       ),
-
       appBar: AppBar(
         toolbarHeight: 70,
         title: const Padding(
@@ -204,7 +196,6 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Create Event Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -214,25 +205,17 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
                   padding: const EdgeInsets.symmetric(vertical: 15),
                 ),
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const CreateEventPage()),
-                  );
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateEventPage()));
                 },
-                child: const Text("Create Event",
-                    style: TextStyle(fontSize: 20, color: Colors.black)),
+                child: const Text("Create Event", style: TextStyle(fontSize: 20, color: Colors.black)),
               ),
             ),
             const SizedBox(height: 30),
-
             const Align(
               alignment: Alignment.centerLeft,
-              child: Text("Created Events",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              child: Text("Created Events", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             ),
             const SizedBox(height: 10),
-
-            // Event List
             Expanded(
               child: events.isEmpty
                   ? const Center(child: Text("No events found"))
@@ -241,45 +224,37 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
                 itemBuilder: (context, index) {
                   final event = events[index];
                   final eventDate = event['eventDate'] ?? 0;
+                  final rsvpCount = rsvpCounts[event['title']] ?? 0;
                   return Card(
                     elevation: 3,
                     margin: const EdgeInsets.symmetric(vertical: 3),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 5, horizontal: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(event['title'] ?? '',
-                              style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold)),
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 6),
                           Text(event['description'] ?? ''),
                           const SizedBox(height: 6),
                           Text("Date: ${formatDate(eventDate)}"),
                           Text("Time: ${event['time']}"),
                           Text("Max Artists: ${event['maxArtists']}"),
+                          Text("RSVP Count: $rsvpCount"),
                           const SizedBox(height: 6),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               TextButton.icon(
                                 onPressed: () => editEvent(event),
-                                icon: const Icon(Icons.edit,
-                                    color: Colors.blue),
-                                label: const Text("Edit",
-                                    style:
-                                    TextStyle(color: Colors.blue)),
+                                icon: const Icon(Icons.edit, color: Colors.blue),
+                                label: const Text("Edit", style: TextStyle(color: Colors.blue)),
                               ),
                               TextButton.icon(
-                                onPressed: () =>
-                                    deleteEvent(event['key']),
-                                icon: const Icon(Icons.cancel,
-                                    color: Colors.red),
-                                label: const Text("Cancel",
-                                    style:
-                                    TextStyle(color: Colors.red)),
+                                onPressed: () => deleteEvent(event['key']),
+                                icon: const Icon(Icons.cancel, color: Colors.red),
+                                label: const Text("Cancel", style: TextStyle(color: Colors.red)),
                               ),
                             ],
                           ),
@@ -290,8 +265,6 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
                 },
               ),
             ),
-
-            // Back Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -301,11 +274,9 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 onPressed: () {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => const AdSignUpPage()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const AdSignUpPage()));
                 },
-                child: const Text("Back",
-                    style: TextStyle(fontSize: 18, color: Colors.black)),
+                child: const Text("Back", style: TextStyle(fontSize: 18, color: Colors.black)),
               ),
             ),
           ],
@@ -319,8 +290,7 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
       children: [
         ListTile(
           leading: Icon(icon, color: Colors.black),
-          title: Text(title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+          title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
           onTap: onTap,
         ),
         const Divider(thickness: 1),
