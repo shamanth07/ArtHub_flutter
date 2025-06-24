@@ -43,6 +43,17 @@ class _EditEventPageState extends State<EditEventPage> {
     _initializeControllers();
     bannerImageUrl = widget.eventData['bannerImageUrl'];
     _initializeMapLocationFromAddress();
+
+    locationController.addListener(() {
+      // Clear selectedLatLng if user manually edits location text
+      if (locationController.text.trim() != (widget.eventData['location'] ?? '')) {
+        if (selectedLatLng != null) {
+          setState(() {
+            selectedLatLng = null;
+          });
+        }
+      }
+    });
   }
 
   void _initializeControllers() {
@@ -62,7 +73,6 @@ class _EditEventPageState extends State<EditEventPage> {
     timeController = TextEditingController(text: widget.eventData['time'] ?? '');
     locationController = TextEditingController(text: widget.eventData['location'] ?? '');
 
-    // Initialize ticketPrice controller with the existing value or empty string
     ticketPriceController = TextEditingController(
       text: widget.eventData['ticketPrice'] != null ? widget.eventData['ticketPrice'].toString() : '',
     );
@@ -103,9 +113,17 @@ class _EditEventPageState extends State<EditEventPage> {
         dateController.text.isEmpty ||
         timeController.text.isEmpty ||
         maxArtistsController.text.isEmpty ||
-        ticketPriceController.text.isEmpty) {
+        ticketPriceController.text.isEmpty ||
+        locationController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill all required fields")),
+      );
+      return;
+    }
+
+    if (selectedLatLng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a valid location from suggestions")),
       );
       return;
     }
@@ -124,8 +142,8 @@ class _EditEventPageState extends State<EditEventPage> {
       "ticketPrice": ticketPrice,
       "bannerImageUrl": bannerImageUrl ?? "https://your-default-banner-url.jpg",
       "location": locationController.text,
-      "latitude": selectedLatLng?.latitude ?? widget.eventData['latitude'],
-      "longitude": selectedLatLng?.longitude ?? widget.eventData['longitude'],
+      "latitude": selectedLatLng!.latitude,
+      "longitude": selectedLatLng!.longitude,
     };
 
     try {
@@ -237,7 +255,8 @@ class _EditEventPageState extends State<EditEventPage> {
                       if (picked != null) {
                         setState(() {
                           selectedDate = picked;
-                          dateController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+                          dateController.text =
+                          "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
                         });
                       }
                     },
@@ -294,7 +313,11 @@ class _EditEventPageState extends State<EditEventPage> {
                               width: 80,
                               height: 80,
                               point: selectedLatLng!,
-                              builder: (ctx) => const Icon(Icons.location_pin, color: Colors.red, size: 40),
+                              builder: (ctx) => const Icon(
+                                Icons.location_pin,
+                                color: Colors.red,
+                                size: 40,
+                              ),
                             ),
                         ],
                       ),
@@ -306,15 +329,16 @@ class _EditEventPageState extends State<EditEventPage> {
                 Row(
                   children: [
                     Expanded(
-                      flex: 4,
                       child: TextField(
                         controller: locationController,
                         decoration: const InputDecoration(
-                          hintText: "Event Location",
+                          hintText: 'Enter Location',
                           border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                         ),
                       ),
                     ),
+
                     const SizedBox(width: 10),
                     SizedBox(
                       height: 48,
@@ -393,7 +417,7 @@ class _EditEventPageState extends State<EditEventPage> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: updateEvent,
+                onPressed: selectedLatLng == null ? null : updateEvent,
                 child: const Text(
                   "Update Event",
                   style: TextStyle(fontSize: 18),
