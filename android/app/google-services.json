@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "731855640891",
+    "firebase_url": "https://arthub-48abc-default-rtdb.firebaseio.com",
+    "project_id": "arthub-48abc",
+    "storage_bucket": "arthub-48abc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:731855640891:android:6dc3423f9410038aedbf1e",
+        "android_client_info": {
+          "package_name": "com.example.art_hub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_6KvjpHgqMvQdv72EWj3DchVCqBrfXzA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:731855640891:android:a92b67b713f960e1edbf1e",
+        "android_client_info": {
+          "package_name": "com.example.arthub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_6KvjpHgqMvQdv72EWj3DchVCqBrfXzA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:731855640891:android:e3efe73452a391a0edbf1e",
+        "android_client_info": {
+          "package_name": "com.example.newarthub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_6KvjpHgqMvQdv72EWj3DchVCqBrfXzA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
