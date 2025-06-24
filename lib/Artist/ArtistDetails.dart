@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,10 +15,20 @@ class _ArtistDetailsPageState extends State<ArtistDetailsPage> {
   Map<dynamic, dynamic>? artistData;
   bool isLoading = true;
 
+
+  final String currentUserId = "rEfSz7M2LoaM6OpPD3G8jJGYPEi2";
+
+
+  final DatabaseReference favouritesRef = FirebaseDatabase.instance.ref('favourites');
+
+  bool isFavourite = false;
+  bool favouriteLoading = true;
+
   @override
   void initState() {
     super.initState();
     fetchArtistData();
+    checkIfFavourite();
   }
 
   void fetchArtistData() async {
@@ -40,12 +49,39 @@ class _ArtistDetailsPageState extends State<ArtistDetailsPage> {
     }
   }
 
+  void checkIfFavourite() async {
+    final favSnapshot = await favouritesRef.child('$currentUserId/${widget.artistId}').get();
+    setState(() {
+      isFavourite = favSnapshot.exists && favSnapshot.value == true;
+      favouriteLoading = false;
+    });
+  }
+
+  void toggleFavourite() async {
+    setState(() {
+      favouriteLoading = true;
+    });
+
+    if (isFavourite) {
+      // Remove from favourites
+      await favouritesRef.child('$currentUserId/${widget.artistId}').remove();
+    } else {
+      // Add to favourites
+      await favouritesRef.child('$currentUserId/${widget.artistId}').set(true);
+    }
+
+    setState(() {
+      isFavourite = !isFavourite;
+      favouriteLoading = false;
+    });
+  }
+
   void _launchURL(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(
         uri,
-        mode: LaunchMode.inAppWebView, // You can change mode if you want
+        mode: LaunchMode.inAppWebView,
       );
     } else {
       print('Cannot launch $url');
@@ -66,7 +102,6 @@ class _ArtistDetailsPageState extends State<ArtistDetailsPage> {
       );
     }
 
-    // Safely cast socialLinks to a Map
     final socialLinks = artistData!['socialLinks'] != null
         ? Map<String, dynamic>.from(artistData!['socialLinks'])
         : null;
@@ -74,12 +109,32 @@ class _ArtistDetailsPageState extends State<ArtistDetailsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(artistData!['name'] ?? 'Artist Details'),
+        actions: [
+          favouriteLoading
+              ? const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          )
+              : IconButton(
+            icon: Icon(
+              isFavourite ? Icons.favorite : Icons.favorite_border,
+              color: isFavourite ? Colors.red : Colors.black,
+            ),
+            onPressed: toggleFavourite,
+            tooltip: isFavourite ? 'Remove from favourites' : 'Add to favourites',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Show first painting image instead of profile image
             Builder(
               builder: (_) {
                 String? paintingUrl;
