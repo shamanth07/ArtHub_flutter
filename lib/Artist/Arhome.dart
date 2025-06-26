@@ -27,7 +27,9 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
   void initState() {
     super.initState();
     fetchUserInfo();
+    listenToInvitationStatusChanges();
   }
+  String? _lastKnownStatus;
 
   Future<void> fetchUserInfo() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -36,6 +38,139 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
       userEmail = user.email;
       await fetchArtworksFromFirebase();
     }
+  }
+  void listenToInvitationStatusChanges() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final artistId = user.uid;
+    final invitationsRef = FirebaseDatabase.instance.ref('invitations');
+
+    final snapshot = await invitationsRef.get();
+    if (!snapshot.exists) return;
+
+    final data = snapshot.value as Map<dynamic, dynamic>;
+
+    String? mostRecentEventId;
+    int mostRecentAppliedAt = 0;
+
+    data.forEach((eventId, artistMap) {
+      if (artistMap is Map && artistMap.containsKey(artistId)) {
+        final artistEntry = artistMap[artistId] as Map<dynamic, dynamic>;
+        final appliedAt = artistEntry['appliedAt'] ?? 0;
+
+        if (appliedAt is int && appliedAt > mostRecentAppliedAt) {
+          mostRecentAppliedAt = appliedAt;
+          mostRecentEventId = eventId;
+        }
+      }
+    });
+
+    if (mostRecentEventId == null) return;
+
+    final recentEventArtistRef = FirebaseDatabase.instance.ref('invitations/$mostRecentEventId/$artistId');
+
+    recentEventArtistRef.onValue.listen((DatabaseEvent event) async {
+      if (!event.snapshot.exists) return;
+
+      final artistEntry = event.snapshot.value as Map<dynamic, dynamic>;
+      final status = artistEntry['status'] ?? 'unknown';
+
+      // Fetch event name dynamically here
+      String eventName = mostRecentEventId!;
+
+      final eventRef = FirebaseDatabase.instance.ref('events/$mostRecentEventId');
+      final eventSnapshot = await eventRef.get();
+      if (eventSnapshot.exists) {
+        final eventData = eventSnapshot.value as Map<dynamic, dynamic>;
+        eventName = eventData['title'] ?? mostRecentEventId;
+      }
+
+      // Show notification only if status has changed
+      if (_lastKnownStatus != status) {
+        _lastKnownStatus = status;
+        if (mounted) {
+          showTopNotification(context, eventName, status);
+        }
+      }
+    });
+  }
+
+
+// Helper method to show top-positioned notification
+  void showTopNotification(BuildContext context, String eventName, String status) {
+    final Color statusColor = status == 'accepted'
+        ? Colors.green
+        : status == 'rejected'
+        ? Colors.red
+        : Colors.orange;
+
+    final IconData statusIcon = status == 'accepted'
+        ? Icons.check_circle
+        : status == 'rejected'
+        ? Icons.cancel
+        : Icons.hourglass_top;
+
+    final overlay = Overlay.of(context);
+    if (overlay == null) return;
+
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 20,
+        left: 20,
+        right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(statusIcon, color: statusColor, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Status Updated',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        'Your status for "$eventName" is now "$status"',
+                        style: TextStyle(
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+
+    // Auto-remove after 5 seconds
+    Future.delayed(Duration(seconds: 5)).then((_) => overlayEntry.remove());
   }
 
   Future<void> fetchArtworksFromFirebase() async {
@@ -92,6 +227,17 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
         isLoading = false;
       });
     }
+  }
+  Future<int> fetchCommentCount(String artworkId) async {
+    final snapshot = await FirebaseDatabase.instance
+        .ref('artworkInteractions/$artworkId/comments')
+        .get();
+
+    if (snapshot.exists) {
+      final data = snapshot.value as Map;
+      return data.length; // total number of comments
+    }
+    return 0;
   }
 
 
@@ -268,26 +414,24 @@ class _ArtistHomePageState extends State<ArtistHomePage> {
                       ),
 
                       // Comments count with tap to open comment page
-                      InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CommentsPage(artworkId: artwork['artworkId']),
+                      IconButton(
+                        icon: const Icon(Icons.comment, color: Colors.white54), // You can change the color or size
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                            ),
+                            builder: (context) => FractionallySizedBox(
+                              heightFactor: 0.5, // Bottom half of the screen
+                              child: CommentsPage(artworkId:artwork['artworkId']), // Pass the correct artwork ID
                             ),
                           );
                         },
-                        child: Row(
-                          children: [
-                            const Icon(Icons.comment, color: Colors.white54, size: 18),
-                            const SizedBox(width: 4),
-                            Text(
-                              (artwork['comments'] ?? 0).toString(),
-                              style: const TextStyle(color: Colors.white54),
-                            ),
-                          ],
-                        ),
                       ),
+
+
 
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
@@ -421,6 +565,9 @@ class CommentsPage extends StatefulWidget {
   State<CommentsPage> createState() => _CommentsPageState();
 }
 
+
+
+
 class _CommentsPageState extends State<CommentsPage> {
   List<Map<String, dynamic>> commentsList = [];
   bool isLoading = true;
@@ -470,8 +617,18 @@ class _CommentsPageState extends State<CommentsPage> {
         List<Map<String, dynamic>> replies = [];
         if (commentData['replies'] != null) {
           final repliesMap = commentData['replies'] as Map<dynamic, dynamic>;
+
           for (var r in repliesMap.entries) {
             final reply = r.value as Map;
+
+            int replyTimestamp = 0;
+            final rawTimestamp = reply['timestamp'];
+            if (rawTimestamp is int) {
+              replyTimestamp = rawTimestamp;
+            } else if (rawTimestamp is double) {
+              replyTimestamp = rawTimestamp.toInt();
+            }
+
             String replyAuthor = "Anonymous";
             if (reply['userId'] != null) {
               final replyUserSnap = await FirebaseDatabase.instance
@@ -490,18 +647,21 @@ class _CommentsPageState extends State<CommentsPage> {
             }
 
             replies.add({
-              'text': reply['text'],
               'author': replyAuthor,
-              'timestamp': reply['timestamp'],
+              'comment': reply['comment'] ?? '',
+              'timestamp': replyTimestamp,
             });
           }
+
+          // Sort replies by timestamp ascending
+          replies.sort((a, b) => a['timestamp'].compareTo(b['timestamp']));
         }
 
         temp.add({
           "commentId": entry.key,
           "text": commentData["comment"] ?? "",
           "author": authorName,
-          "timestamp": commentData["timestamp"] ?? 0,
+          "timestamp": parseTimestamp(commentData["timestamp"]),
           "replies": replies,
         });
       }
@@ -518,6 +678,11 @@ class _CommentsPageState extends State<CommentsPage> {
     }
   }
 
+  int parseTimestamp(dynamic value) {
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    return 0;
+  }
 
   Future<void> addReply(String commentId, String text) async {
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -528,7 +693,7 @@ class _CommentsPageState extends State<CommentsPage> {
         .push();
 
     await replyRef.set({
-      "text": text,
+      "comment": text,
       "userId": currentUser.uid,
       "timestamp": DateTime.now().millisecondsSinceEpoch,
     });
@@ -540,100 +705,72 @@ class _CommentsPageState extends State<CommentsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Comments')),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: commentsList.length,
-              itemBuilder: (context, index) {
-                final comment = commentsList[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(comment['text'], style: const TextStyle(fontSize: 16)),
-                        const SizedBox(height: 4),
-                        Text("By ${comment['author']}", style: const TextStyle(color: Colors.grey)),
-                        Text("ID: ${comment['commentId']}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
-
-                        // Show replies
-                        if (comment['replies'] != null && comment['replies'].isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: (comment['replies'] as List)
-                                  .map((reply) => Padding(
-                                padding: const EdgeInsets.only(left: 16, top: 4),
-                                child: Text(
-                                  "↳ ${reply['author']}: ${reply['text']}",
-                                  style: const TextStyle(color: Colors.blueGrey),
-                                ),
-                              ))
-                                  .toList(),
-                            ),
-                          ),
-
-                        // Reply button
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () {
-                              setState(() {
-                                replyingToCommentId = comment['commentId'];
-                              });
-                            },
-                            child: const Text("Reply"),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // Reply input field
-          if (replyingToCommentId != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: Column(
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const Text("Comments",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            ...commentsList.map((comment) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextField(
-                    controller: _replyController,
-                    decoration: InputDecoration(
-                      hintText: 'Write a reply...',
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.send),
-                        onPressed: () {
-                          if (_replyController.text.trim().isNotEmpty) {
-                            addReply(replyingToCommentId!, _replyController.text.trim());
-                          }
-                        },
+                  Text(comment['author'],
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(comment['text']),
+                  ...comment['replies'].map<Widget>((reply) {
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("- ${reply['author']}: ${reply['comment']}"),
+                        ],
                       ),
-                    ),
-                  ),
+                    );
+                  }).toList(),
                   TextButton(
                     onPressed: () {
                       setState(() {
-                        replyingToCommentId = null;
-                        _replyController.clear();
+                        replyingToCommentId = comment['commentId'];
                       });
                     },
-                    child: const Text("Cancel"),
+                    child: const Text("Reply"),
                   ),
                 ],
-              ),
-            ),
-        ],
+              );
+            }).toList(),
+            if (replyingToCommentId != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _replyController,
+                        decoration:
+                        const InputDecoration(hintText: "Type your reply"),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: () {
+                        if (_replyController.text.trim().isNotEmpty) {
+                          addReply(replyingToCommentId!, _replyController.text.trim());
+                        }
+                      },
+                    )
+                  ],
+                ),
+              )
+          ],
+        ),
       ),
     );
   }
