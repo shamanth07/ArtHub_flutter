@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
+
 class BookingHistoryPage extends StatefulWidget {
   const BookingHistoryPage({super.key});
 
@@ -54,12 +55,10 @@ class _BookingHistoryPageState extends State<BookingHistoryPage> {
       keys.add(key);
     });
 
-    // Sort by bookingTimestamp (most recent first)
     bookings.sort((a, b) => b['bookingTimestamp']
         .toString()
         .compareTo(a['bookingTimestamp'].toString()));
 
-    // Sort keys in the same order as bookings
     keys.sort((a, b) {
       final aTimestamp = bookings[bookings.indexWhere(
               (bkg) => bkg['bookingTimestamp'] == data[a]['bookingTimestamp'])]
@@ -78,9 +77,49 @@ class _BookingHistoryPageState extends State<BookingHistoryPage> {
 
   Future<void> _cancelBooking(int index) async {
     final bookingKey = _bookingKeys[index];
+    final booking = _bookings[index];
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
     try {
       await _bookingRef.child(bookingKey).remove();
+
+      final int ticketsBooked = booking['ticketsBooked'] ?? 0;
+
+      if (ticketsBooked > 0) {
+        final eventTitle = booking['event']?['title'] ?? '';
+
+        if (eventTitle.isNotEmpty) {
+          final rsvpUserRef =
+          FirebaseDatabase.instance.ref('rsvp/$eventTitle/${user.uid}');
+          final rsvpCountRef =
+          FirebaseDatabase.instance.ref('rsvpcount/$eventTitle/attending');
+
+          final userRsvpSnapshot = await rsvpUserRef.get();
+          if (userRsvpSnapshot.exists) {
+            final userData = userRsvpSnapshot.value as Map<dynamic, dynamic>;
+            int currentUserTickets = userData['tickets'] ?? 0;
+
+            int updatedUserTickets = currentUserTickets - ticketsBooked;
+            if (updatedUserTickets > 0) {
+              await rsvpUserRef.update({'tickets': updatedUserTickets});
+            } else {
+              await rsvpUserRef.remove();
+            }
+          }
+
+          final rsvpCountSnapshot = await rsvpCountRef.get();
+          int currentTotal = 0;
+          if (rsvpCountSnapshot.exists) {
+            currentTotal = rsvpCountSnapshot.value as int;
+          }
+
+          int updatedTotal = currentTotal - ticketsBooked;
+          if (updatedTotal < 0) updatedTotal = 0;
+
+          await rsvpCountRef.set(updatedTotal);
+        }
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Booking cancelled successfully.")),
@@ -99,14 +138,10 @@ class _BookingHistoryPageState extends State<BookingHistoryPage> {
 
   bool _isEventInFuture(String eventDate) {
     try {
-      // Try parsing the date, adjust format if needed
       final eventDateTime = DateFormat('yyyy-MM-dd').parse(eventDate);
       final now = DateTime.now();
-
-      // Check if eventDate is today or in the future
       return !eventDateTime.isBefore(DateTime(now.year, now.month, now.day));
     } catch (e) {
-      // If parsing fails, disable cancel button for safety
       return false;
     }
   }
@@ -134,7 +169,6 @@ class _BookingHistoryPageState extends State<BookingHistoryPage> {
           final booking = _bookings[index];
           final event = booking['event'] ?? {};
 
-          final imageUrl = event['imageUrl'] ?? '';
           final title = event['title'] ?? 'No Title';
           final location = event['location'] ?? 'Unknown';
           final date = event['date'] ?? 'Unknown Date';
@@ -152,7 +186,6 @@ class _BookingHistoryPageState extends State<BookingHistoryPage> {
               .split('.')
               .first;
 
-          // Check if event date is in the future for cancel button visibility
           final canCancel = _isEventInFuture(date);
 
           return Card(
@@ -161,88 +194,70 @@ class _BookingHistoryPageState extends State<BookingHistoryPage> {
               borderRadius: BorderRadius.circular(12),
             ),
             elevation: 4,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (imageUrl.isNotEmpty)
-                  ClipRRect(
-                    borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
-                    child: Image.network(
-                      imageUrl,
-                      height: 180,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text("📍 $location"),
-                      Text("📅 $date at $time"),
-                      const SizedBox(height: 4),
-                      Text("Tickets: $ticketsBooked"),
-                      Text("Subtotal: ₹${subtotal.toStringAsFixed(2)}"),
-                      Text("Tax: ₹${tax.toStringAsFixed(2)}"),
-                      Text("Total: ₹${total.toStringAsFixed(2)}"),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Booked on: $formattedTimestamp",
-                        style:
-                        const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 12),
-
-                      if (canCancel)
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('Cancel Booking'),
-                                  content: const Text(
-                                      'Are you sure you want to cancel this booking?'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.of(ctx).pop();
-                                      },
-                                      child: const Text('No'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.of(ctx).pop();
-                                        _cancelBooking(index);
-                                      },
-                                      child: const Text('Yes'),
-                                    ),
-                                  ],
+                  const SizedBox(height: 4),
+                  Text("📍 $location"),
+                  Text("📅 $date at $time"),
+                  const SizedBox(height: 4),
+                  Text("Tickets: $ticketsBooked"),
+                  Text("Subtotal: ₹${subtotal.toStringAsFixed(2)}"),
+                  Text("Tax: ₹${tax.toStringAsFixed(2)}"),
+                  Text("Total: ₹${total.toStringAsFixed(2)}"),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Booked on: $formattedTimestamp",
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 12),
+                  if (canCancel)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Cancel Booking'),
+                              content: const Text(
+                                  'Are you sure you want to cancel this booking?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(ctx).pop();
+                                  },
+                                  child: const Text('No'),
                                 ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(ctx).pop();
+                                    _cancelBooking(index);
+                                  },
+                                  child: const Text('Yes'),
+                                ),
+                              ],
                             ),
-                            child: const Text('Cancel Booking'),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                    ],
-                  ),
-                ),
-              ],
+                        child: const Text('Cancel Booking'),
+                      ),
+                    ),
+                ],
+              ),
             ),
           );
         },

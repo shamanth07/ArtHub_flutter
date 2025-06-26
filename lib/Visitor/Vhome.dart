@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -9,6 +11,7 @@ import 'package:newarthub/Visitor/VSettings.dart';
 import 'package:newarthub/Visitor/BookEvent.dart';
 import 'package:newarthub/Artist/ArtistDetails.dart';
 import 'package:newarthub/Visitor/Favourites.dart';
+
 class VisitorHomePage extends StatefulWidget {
   const VisitorHomePage({super.key});
 
@@ -83,41 +86,93 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
     fetchData();
     fetchArtworks();
   }
+  Future<void> showAddCommentDialog(BuildContext context, String eventId) async {
+    final TextEditingController commentController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Comment'),
+        content: TextField(
+          controller: commentController,
+          decoration: const InputDecoration(
+            hintText: 'Write your comment here...',
+          ),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final commentText = commentController.text.trim();
+              if (commentText.isNotEmpty) {
+                final userId = "currentUserId"; // Replace with your user ID
+                final userName = "currentUserName"; // Replace with your user name
+
+                final commentRef = FirebaseDatabase.instance
+                    .ref()
+                    .child('eventComments')
+                    .child(eventId)
+                    .push();
+
+                await commentRef.set({
+                  'userId': userId,
+                  'userName': userName,
+                  'commentText': commentText,
+                  'timestamp': DateTime.now().millisecondsSinceEpoch,
+                });
+
+                Navigator.of(context).pop();
+              }
+            },
+            child: const Text('Post'),
+          ),
+        ],
+      ),
+    );
+  }
+  @override
+  void dispose() {
+    _artworksListener?.cancel();
+    super.dispose();
+  }
+
+  StreamSubscription<DatabaseEvent>? _artworksListener;
 
   Future<void> fetchData() async {
     setState(() => isLoading = true);
 
-    if (selectedCategory == 'Art Discovery') {
-      final snapshot = await dbRef.child('artists').get();
-      List<Map<String, dynamic>> tempArtworks = [];
+    // Cancel previous listener (if switching categories)
+    _artworksListener?.cancel();
 
-      if (snapshot.exists && snapshot.value is Map) {
-        final artistsMap = snapshot.value as Map;
-        artistsMap.forEach((artistId, artistData) {
-          if (artistData is Map &&
-              artistData['artworks'] != null &&
-              artistData['artworks'] is Map) {
-            final artworksMap = artistData['artworks'] as Map;
-            artworksMap.forEach((artworkId, artworkData) {
-              if (artworkData is Map) {
-                tempArtworks.add({
-                  'id': artworkId,
-                  'title': artworkData['title'] ?? '',
-                  'imageUrl': artworkData['imageUrl'] ?? '',
-                  'artistId': artistId,
-                  // <--- ADD THIS
-                  'category': artworkData['category'] ?? 'paintings',
-                  // See next fix
-                });
-              }
+    if (selectedCategory == 'Art Discovery') {
+      _artworksListener = dbRef.child('artworks').onValue.listen((event) {
+        final snapshot = event.snapshot;
+        List<Map<String, dynamic>> tempArtworks = [];
+
+        if (snapshot.exists && snapshot.value is Map) {
+          final artworksMap = snapshot.value as Map;
+
+          artworksMap.forEach((artworkId, artworkData) {
+            if (artworkData is Map) {
+              tempArtworks.add({
+                'id': artworkId,
+                'title': artworkData['title'] ?? '',
+                'imageUrl': artworkData['imageUrl'] ?? '',
+                'artistId': artworkData['artistId'] ?? '',
+                'category': artworkData['category'] ?? 'paintings',
               });
             }
-        });
-      }
+          });
+        }
 
-      setState(() {
-        artworks = tempArtworks;
-        isLoading = false;
+        setState(() {
+          artworks = tempArtworks;
+          isLoading = false;
+        });
       });
     } else if (selectedCategory == 'Events') {
       final snapshot = await dbRef.child('events').get();
@@ -157,6 +212,7 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
       });
     }
   }
+
 
   List<Map<String, dynamic>> getFilteredItems() {
     final query = searchController.text.toLowerCase();
@@ -198,6 +254,45 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
     }
     return 0;
   }
+  Future<void> addEventComment(String eventId, String commentText) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || commentText.trim().isEmpty) return;
+
+    final newCommentRef = FirebaseDatabase.instance
+        .ref("eventComments/$eventId")
+        .push();
+
+    await newCommentRef.set({
+      "comment": commentText,
+      "userEmail": user.email,
+      "timestamp": DateTime.now().millisecondsSinceEpoch,
+      "replies": {}
+    });
+  }
+  Future<List<Map<String, dynamic>>> fetchEventComments(String eventId) async {
+    final snapshot = await FirebaseDatabase.instance
+        .ref("eventComments/$eventId")
+        .get();
+
+    if (!snapshot.exists) return [];
+
+    final Map<String, dynamic> rawComments =
+    Map<String, dynamic>.from(snapshot.value as Map);
+
+    return rawComments.entries.map((entry) {
+      final comment = Map<String, dynamic>.from(entry.value);
+      comment['id'] = entry.key;
+
+      // Ensure replies is always a list of maps
+      if (comment['replies'] is List) {
+        comment['replies'] = List<Map<String, dynamic>>.from(comment['replies']);
+      } else {
+        comment['replies'] = [];
+      }
+
+      return comment;
+    }).toList();
+  }
 
 
   Future<List<Map<String, dynamic>>> fetchComments(String artworkId) async {
@@ -209,20 +304,50 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
       final data = snapshot.value as Map;
 
       for (final entry in data.entries) {
+        final commentId = entry.key;
         final commentData = entry.value;
         if (commentData is Map) {
           final userId = commentData['userId'];
           final emailSnapshot = await dbRef.child('users/$userId/email').get();
           final userEmail = emailSnapshot.value?.toString() ?? 'Unknown user';
 
+          // Fetch replies (if any)
+          List<Map<String, dynamic>> replies = [];
+          if (commentData.containsKey('replies') &&
+              commentData['replies'] is Map) {
+            final repliesMap = commentData['replies'] as Map;
+            for (final replyEntry in repliesMap.entries) {
+              final replyData = replyEntry.value;
+              if (replyData is Map) {
+                final replyUserId = replyData['userId'];
+                final replyEmailSnap =
+                await dbRef.child('users/$replyUserId/email').get();
+                final replyUserEmail =
+                    replyEmailSnap.value?.toString() ?? 'Unknown user';
+
+                replies.add({
+                  'text': replyData['comment'] ?? '',
+                  'userEmail': replyUserEmail,
+                  'timestamp': replyData['timestamp'] ?? 0,
+                });
+
+              }
+            }
+
+            // Sort replies by timestamp
+            replies.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
+          }
+
           comments.add({
             'comment': commentData['comment'] ?? '',
             'userEmail': userEmail,
             'timestamp': commentData['timestamp'] ?? 0,
+            'replies': replies,
           });
         }
       }
 
+      // Sort comments by timestamp
       comments.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
     }
 
@@ -240,6 +365,50 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     });
     setState(() {});
+  }
+  Widget eventCommentsWidget(String eventId) {
+    final commentsRef = FirebaseDatabase.instance.ref('eventComments').child(eventId);
+
+    return StreamBuilder(
+      stream: commentsRef.orderByChild('timestamp').onValue,
+      builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
+        if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
+          return const Text('No comments yet.');
+        }
+
+        Map<dynamic, dynamic> commentsMap = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+
+        var commentsList = commentsMap.entries.map((e) {
+          final data = e.value as Map<dynamic, dynamic>;
+          return {
+            'userName': data['userName'] ?? 'Anonymous',
+            'commentText': data['commentText'] ?? '',
+            'timestamp': data['timestamp'] ?? 0,
+          };
+        }).toList();
+
+        // Sort comments by timestamp descending (newest first)
+        commentsList.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
+
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: commentsList.length,
+          itemBuilder: (context, index) {
+            final comment = commentsList[index];
+            final date = DateTime.fromMillisecondsSinceEpoch(comment['timestamp']);
+            return ListTile(
+              title: Text(comment['userName']),
+              subtitle: Text(comment['commentText']),
+              trailing: Text(
+                '${date.month}/${date.day}/${date.year}',
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void showCommentDialog(String artworkId) {
@@ -275,19 +444,39 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
                       itemCount: comments.length,
                       itemBuilder: (_, index) {
                         final comment = comments[index];
-                        final timestamp = DateTime.fromMillisecondsSinceEpoch(
-                            comment['timestamp']);
-                        final time = DateFormat('MMM d, h:mm a').format(timestamp);
-                        return ListTile(
-                          leading: const Icon(Icons.person),
-                          title: Text(comment['comment']),
-                          subtitle: Text("${comment['userEmail']}\n${DateFormat('MMM d, h:mm a').format(
-                            DateTime.fromMillisecondsSinceEpoch(comment['timestamp']),
-                          )}"),
-                        );
+                        final timestamp = DateTime.fromMillisecondsSinceEpoch(comment['timestamp']);
+                        final formattedTime = DateFormat('MMM d, h:mm a').format(timestamp);
 
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.person),
+                              title: Text(comment['comment']),
+                              subtitle: Text("${comment['userEmail']}\n$formattedTime"),
+                            ),
+                            if (comment['replies'] != null && comment['replies'].isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 50),
+                                child: Column(
+                                  children: (comment['replies'] as List<Map<String, dynamic>>)
+                                      .map((reply) {
+                                    final replyTime = DateFormat('MMM d, h:mm a').format(
+                                      DateTime.fromMillisecondsSinceEpoch(reply['timestamp']),
+                                    );
+                                    return ListTile(
+                                      leading: const Icon(Icons.reply, size: 20),
+                                      title: Text(reply['text']),
+                                      subtitle: Text("${reply['userEmail']}\n$replyTime"),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                          ],
+                        );
                       },
                     );
+
                   },
                 ),
               ),
@@ -318,6 +507,150 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
       ),
     );
   }
+
+  Future<int> getEventCommentCount(String eventId) async {
+    final ref = FirebaseDatabase.instance.ref('eventComments/$eventId');
+    final snapshot = await ref.get();
+    if (snapshot.exists && snapshot.value is Map) {
+      return (snapshot.value as Map).length;
+    }
+    return 0;
+  }
+
+  void showEventCommentDialog(String eventId) {
+    final controller = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SizedBox(
+          height: 400,
+          child: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(10),
+                child: Text("Event Comments",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+              Expanded(
+                child: StreamBuilder<DatabaseEvent>(
+                  stream: FirebaseDatabase.instance.ref('eventComments/$eventId').onValue,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
+                      return const Center(child: Text("No comments yet."));
+                    }
+
+                    final Map<dynamic, dynamic> data =
+                    snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+
+                    final comments = data.entries.map((entry) {
+                      final commentData = entry.value as Map;
+                      final replies = (commentData['replies'] ?? {}) as Map;
+
+                      final sortedReplies = replies.entries.toList()
+                        ..sort((a, b) =>
+                            a.value['timestamp'].compareTo(b.value['timestamp']));
+
+                      return {
+                        'commentId': entry.key,
+                        'comment': commentData['comment'],
+                        'userEmail': commentData['userEmail'],
+                        'timestamp': commentData['timestamp'],
+                        'replies': sortedReplies,
+                      };
+                    }).toList();
+
+                    return ListView.builder(
+                      itemCount: comments.length,
+                      itemBuilder: (_, index) {
+                        final comment = comments[index];
+
+                        final timestamp = DateTime.fromMillisecondsSinceEpoch(
+                            comment['timestamp']);
+                        final formattedTime =
+                        DateFormat('MMM d, h:mm a').format(timestamp);
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.person),
+                              title: Text(comment['comment']),
+                              subtitle: Text("${comment['userEmail']}\n$formattedTime"),
+                            ),
+                            ...comment['replies'].map<Widget>((replyEntry) {
+                              final replyData = replyEntry.value;
+                              final replyTime = DateTime.fromMillisecondsSinceEpoch(replyData['timestamp']);
+                              final formattedReplyTime = DateFormat('MMM d, h:mm a').format(replyTime);
+
+                              return Padding(
+                                padding: const EdgeInsets.only(left: 40, bottom: 8),
+                                child: ListTile(
+                                  leading: const Icon(Icons.reply, size: 20),
+                                  title: Text(replyData['comment'] ?? ''),
+                                  subtitle: Text("${replyData['userEmail']} • $formattedReplyTime"),
+                                ),
+                              );
+                            }).toList(),
+                            const Divider(),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                )
+
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: controller,
+                        decoration:
+                        const InputDecoration(hintText: "Add a comment"),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: () async {
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user == null || controller.text.trim().isEmpty) return;
+
+                        final commentRef = FirebaseDatabase.instance
+                            .ref('eventComments/$eventId')
+                            .push();
+
+                        await commentRef.set({
+                          'comment': controller.text.trim(),
+                          'userEmail': user.email,
+                          'timestamp': DateTime.now().millisecondsSinceEpoch,
+                        });
+
+                        controller.clear();
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
 
   Widget buildSearchBar() {
     return Padding(
@@ -425,6 +758,7 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
                 MaterialPageRoute(builder: (_) => const SettingsPage())),
           ),
           const Divider(),
+
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text("Logout"),
@@ -538,33 +872,40 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
                         aspectRatio: 1,
                         child: GestureDetector(
                           onTap: selectedCategory == 'Events'
-                              ? () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => BookEventPage(
-                                title: item['title'],
-                                description:
-                                item['description'],
-                                imageUrl:
-                                item['bannerImageUrl'],
-                                location: item['location'],
-                                ticketPrice:
-                                (item['ticketPrice']
-                                as num?)
-                                    ?.toDouble() ??
-                                    0.0,
-                                date: item['eventDate'] != 0
-                                    ? DateTime
-                                    .fromMillisecondsSinceEpoch(
-                                    item['eventDate'])
-                                    .toString()
-                                    .split(' ')[0]
-                                    : 'Not available',
-                                time: item['time'],
+                              ? () {
+                            final eventId = item['eventId'] ?? item['id']; // fallback to 'id' if 'eventId' missing
+
+                            if (eventId == null || eventId is! String || eventId.isEmpty) {
+                              print("⚠️ eventId is null or invalid for item: $item");
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("This event is missing a valid ID.")),
+                              );
+                              return;
+                            }
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => BookEventPage(
+                                  eventId: eventId,
+                                  title: item['title'] ?? '',
+                                  description: item['description'] ?? '',
+                                  imageUrl: item['bannerImageUrl'] ?? '',
+                                  location: item['location'] ?? '',
+                                  ticketPrice: (item['ticketPrice'] as num?)?.toDouble() ?? 0.0,
+                                  date: item['eventDate'] != null
+                                      ? DateTime.fromMillisecondsSinceEpoch(item['eventDate'])
+                                      .toString()
+                                      .split(' ')[0]
+                                      : 'Not available',
+                                  time: item['time'] ?? '',
+                                ),
                               ),
-                            ),
-                          )
+                            );
+                          }
                               : null,
+
+
                           child: item[selectedCategory == 'Art Discovery'
                               ? 'imageUrl'
                               : 'bannerImageUrl'] !=
@@ -599,7 +940,27 @@ class _VisitorHomePageState extends State<VisitorHomePage> {
                               Text("Date: ${item['eventDateFormatted']}"),
                               Text("Time: ${item['time']}"),
                               Text("Description: ${item['description']}"),
+
+                              const SizedBox(height: 10),
+                              FutureBuilder<int>(
+                                future: getEventCommentCount(id),
+                                builder: (_, snap) {
+                                  final count = snap.data ?? 0;
+                                  return Row(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.comment),
+                                        onPressed: () => showEventCommentDialog(id),
+                                      ),
+                                      Text('$count'),
+                                    ],
+                                  );
+                                },
+                              )
                             ],
+
+
+
                             if (selectedCategory == 'Art Discovery') ...[
                               const SizedBox(height: 10),
                               FutureBuilder<int>(

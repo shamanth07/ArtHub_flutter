@@ -1,4 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'ArtistChat.dart';
+import 'package:newarthub/Visitor/ThemeProvider.dart';
+import 'package:provider/provider.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -10,10 +14,13 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool isDarkMode = false;
 
+
   @override
+
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
@@ -51,6 +58,8 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 50),
 
               // Dark Mode Toggle
+
+              // Dark Mode Toggle
               Row(
                 children: [
                   const Icon(Icons.dark_mode, size: 28),
@@ -62,18 +71,18 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   Switch(
-                    value: isDarkMode,
+                    value: themeProvider.isDarkMode,
                     onChanged: (value) {
-                      setState(() {
-                        isDarkMode = value;
-                      });
+                      themeProvider.toggleTheme(value);
                     },
                   ),
                 ],
               ),
+
               const SizedBox(height: 40),
               const Divider(thickness: 1),
               const SizedBox(height: 40),
+
 
               // Change Language
               Row(
@@ -91,22 +100,36 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 40),
               const Divider(thickness: 1),
               const SizedBox(height: 40),
-
-              // Live Chat Support
-              Row(
-                children: const [
-                  Icon(Icons.headset_mic, size: 28),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      "Live Chat Support",
-                      style: TextStyle(fontSize: 18),
+              // Live Chat Support section
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ArtistChatPage(
+                        userId: FirebaseAuth.instance.currentUser!.uid,
+                        userRole: "artist", // or "artist" depending on logged in role
+                      ),
                     ),
-                  ),
-                ],
+                  );
+                },
+                child: Row(
+                  children: const [
+                    Icon(Icons.headset_mic, size: 28),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        "Live Chat Support",
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 40),
               const Divider(thickness: 1),
+
+              // Live Chat Support
             ],
           ),
         ),
@@ -114,4 +137,5 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 }
+
 

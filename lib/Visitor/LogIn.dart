@@ -128,7 +128,7 @@ class _SignupPageState extends State<SignupPage> {
                             _navigateToRolePage(value);
                           }
                         },
-                        style: const TextStyle(color: Colors.black87),
+                        style: const TextStyle(color: Colors.black),
                         dropdownColor: Colors.white,
                       ),
                     ),
@@ -153,7 +153,7 @@ class _SignupPageState extends State<SignupPage> {
                     decoration: const InputDecoration(
                       hintText: "example@email.com",
                       enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
+                        borderSide: BorderSide(color: Colors.black54),
                       ),
                       focusedBorder: UnderlineInputBorder(
                         borderSide: BorderSide(color: Colors.black),

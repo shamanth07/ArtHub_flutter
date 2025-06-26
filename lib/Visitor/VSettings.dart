@@ -1,31 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:newarthub/Visitor/ChatPage.dart';
+import 'package:newarthub/Visitor/ThemeProvider.dart';// adjust path as needed
 
-class SettingsPage extends StatefulWidget {
+class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
-  State<SettingsPage> createState() => _SettingsPageState();
-}
-
-class _SettingsPageState extends State<SettingsPage> {
-  bool isDarkMode = false;
-
-  @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
-      backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Row: Logo + Centered Title
+              // Top Row: Logo + Title
               Row(
                 children: [
-                  Column(
+                  const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Icon(Icons.auto_awesome, size: 32),
                       Text(
                         "ARTHUB",
@@ -38,14 +36,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
               ),
               const SizedBox(height: 12),
-
               const Center(
                 child: Text(
                   "Settings",
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 50),
@@ -62,15 +56,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   Switch(
-                    value: isDarkMode,
+                    value: themeProvider.isDarkMode,
                     onChanged: (value) {
-                      setState(() {
-                        isDarkMode = value;
-                      });
+                      themeProvider.toggleTheme(value);
                     },
                   ),
                 ],
               ),
+
               const SizedBox(height: 40),
               const Divider(thickness: 1),
               const SizedBox(height: 40),
@@ -88,22 +81,36 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 40),
               const Divider(thickness: 1),
               const SizedBox(height: 40),
 
               // Live Chat Support
-              Row(
-                children: const [
-                  Icon(Icons.headset_mic, size: 28),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      "Live Chat Support",
-                      style: TextStyle(fontSize: 18),
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UserChatPage(
+                        userId: FirebaseAuth.instance.currentUser!.uid,
+                        userRole: "visitor",
+                      ),
                     ),
-                  ),
-                ],
+                  );
+                },
+                child: Row(
+                  children: const [
+                    Icon(Icons.headset_mic, size: 28),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        "Live Chat Support",
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 40),
               const Divider(thickness: 1),
@@ -114,4 +121,3 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 }
-

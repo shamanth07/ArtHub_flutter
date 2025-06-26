@@ -1,4 +1,10 @@
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:newarthub/Admin/AdminChatUserList.dart';
+import 'package:newarthub/Visitor/ThemeProvider.dart';
+import 'package:provider/provider.dart';
+
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -12,8 +18,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+
+
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
@@ -62,15 +71,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   Switch(
-                    value: isDarkMode,
+                    value: themeProvider.isDarkMode,
                     onChanged: (value) {
-                      setState(() {
-                        isDarkMode = value;
-                      });
+                      themeProvider.toggleTheme(value);
                     },
                   ),
                 ],
               ),
+
               const SizedBox(height: 40),
               const Divider(thickness: 1),
               const SizedBox(height: 40),
@@ -93,17 +101,30 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 40),
 
               // Live Chat Support
-              Row(
-                children: const [
-                  Icon(Icons.headset_mic, size: 28),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      "Live Chat Support",
-                      style: TextStyle(fontSize: 18),
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AdminChatUserListPage(), // No params needed
                     ),
-                  ),
-                ],
+                  );
+                },
+
+
+
+                child: Row(
+                  children: const [
+                    Icon(Icons.headset_mic, size: 28),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        "Live Chat Support",
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 40),
               const Divider(thickness: 1),
