@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geocoding/geocoding.dart';
+import 'dart:convert';
 
 class CreateEventPage extends StatefulWidget {
   const CreateEventPage({super.key});
@@ -94,9 +95,25 @@ class _CreateEventPageState extends State<CreateEventPage> {
         dateController.text.isEmpty ||
         timeController.text.isEmpty ||
         maxVisitorsController.text.isEmpty ||
-        ticketPriceController.text.isEmpty) {
+        ticketPriceController.text.isEmpty ||
+        locationController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill all required fields")),
+      );
+      return;
+    }
+
+    // Validate location
+    try {
+      List<Location> locations = await locationFromAddress(locationController.text);
+      if (locations.isEmpty) {
+        throw Exception("Invalid location");
+      }
+      final loc = locations.first;
+      _currentLatLng = LatLng(loc.latitude, loc.longitude);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a valid location")),
       );
       return;
     }
@@ -129,7 +146,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
       "eventDate": date.millisecondsSinceEpoch,
       "time": timeController.text,
       "maxArtists": maxArtists,
-      "ticketPrice": ticketPrice, // ✅ Add ticketPrice to DB
+      "ticketPrice": ticketPrice,
       "bannerImageUrl": imageUrl,
       "locationName": locationController.text,
       "latitude": _currentLatLng.latitude,
@@ -148,13 +165,13 @@ class _CreateEventPageState extends State<CreateEventPage> {
     dateController.clear();
     timeController.clear();
     maxVisitorsController.clear();
-    ticketPriceController.clear(); // ✅ Clear ticket price field
+    ticketPriceController.clear();
     locationController.clear();
 
     setState(() {
       _pickedImage = null;
       isUploading = false;
-      _currentLatLng = LatLng(20.5937, 78.9629); // Reset map center
+      _currentLatLng = LatLng(20.5937, 78.9629);
       _mapController.move(_currentLatLng, 5);
     });
   }
@@ -284,14 +301,13 @@ class _CreateEventPageState extends State<CreateEventPage> {
                     child: TextField(
                       controller: locationController,
                       decoration: const InputDecoration(
-                        hintText: "Enter Location",
+                        hintText: 'Enter Location',
                         border: OutlineInputBorder(),
-                        contentPadding:
-                        EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                       ),
-                      onSubmitted: (_) => _handleSearch(),
                     ),
                   ),
+
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: _handleSearch,

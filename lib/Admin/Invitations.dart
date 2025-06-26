@@ -60,6 +60,23 @@ class _AdminInvitationsPageState extends State<AdminInvitationsPage> {
     fetchAllInvitations(); // refresh
   }
 
+  Future<void> deleteEvent(String eventId) async {
+    try {
+      await _eventsRef.child(eventId).remove();
+      await _invitationsRef.child(eventId).remove();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Event deleted successfully.")),
+      );
+
+      fetchAllInvitations();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to delete event: $e")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,23 +104,54 @@ class _AdminInvitationsPageState extends State<AdminInvitationsPage> {
                   Text("Status: ${status.toString().toUpperCase()}"),
                   const SizedBox(height: 8),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.check),
-                        label: const Text("Accept"),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                        onPressed: status == 'accepted'
-                            ? null
-                            : () => updateStatus(invite['eventId'], invite['artistId'], 'accepted'),
+                      Row(
+                        children: [
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.check),
+                            label: const Text("Accept"),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                            onPressed: status == 'accepted'
+                                ? null
+                                : () => updateStatus(invite['eventId'], invite['artistId'], 'accepted'),
+                          ),
+                          const SizedBox(width: 10),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.close),
+                            label: const Text("Reject"),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                            onPressed: status == 'rejected'
+                                ? null
+                                : () => updateStatus(invite['eventId'], invite['artistId'], 'rejected'),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.close),
-                        label: const Text("Reject"),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                        onPressed: status == 'rejected'
-                            ? null
-                            : () => updateStatus(invite['eventId'], invite['artistId'], 'rejected'),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.black54),
+                        tooltip: 'Delete Event',
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text("Delete Event"),
+                              content: const Text("Are you sure you want to delete this event and all its invitations?"),
+                              actions: [
+                                TextButton(
+                                  child: const Text("Cancel"),
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                ),
+                                TextButton(
+                                  child: const Text("Delete", style: TextStyle(color: Colors.red)),
+                                  onPressed: () {
+                                    Navigator.of(ctx).pop();
+                                    deleteEvent(invite['eventId']);
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
