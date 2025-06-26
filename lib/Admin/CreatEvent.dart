@@ -148,7 +148,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
       "maxArtists": maxArtists,
       "ticketPrice": ticketPrice,
       "bannerImageUrl": imageUrl,
-      "location": locationController.text,
+      "locationName": locationController.text,
       "latitude": _currentLatLng.latitude,
       "longitude": _currentLatLng.longitude,
     };
